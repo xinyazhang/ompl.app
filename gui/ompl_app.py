@@ -93,11 +93,11 @@ class MainWindow(QtGui.QMainWindow):
 
         # connect timeLimit widgets in geometric and control planning with each other and with the
         # MainWindow.setTimeLimit method
-        self.mainWidget.plannerWidget.geometricPlanning.timeLimit.valueChanged.connect(self.setTimeLimit)
-        self.mainWidget.plannerWidget.geometricPlanning.timeLimit.valueChanged.connect(
+        self.mainWidget.plannerWidget.geometricPlanning.timeLimit.valueChanged[float].connect(self.setTimeLimit)
+        self.mainWidget.plannerWidget.geometricPlanning.timeLimit.valueChanged[float].connect(
             self.mainWidget.plannerWidget.controlPlanning.timeLimit.setValue)
-        self.mainWidget.plannerWidget.controlPlanning.timeLimit.valueChanged.connect(self.setTimeLimit)
-        self.mainWidget.plannerWidget.controlPlanning.timeLimit.valueChanged.connect(
+        self.mainWidget.plannerWidget.controlPlanning.timeLimit.valueChanged[float].connect(self.setTimeLimit)
+        self.mainWidget.plannerWidget.controlPlanning.timeLimit.valueChanged[float].connect(
             self.mainWidget.plannerWidget.geometricPlanning.timeLimit.setValue)
         self.timeLimit = self.mainWidget.plannerWidget.geometricPlanning.timeLimit.value()
 
@@ -204,6 +204,7 @@ class MainWindow(QtGui.QMainWindow):
                                                config.getfloat("problem", "goal.axis.y"),
                                                config.getfloat("problem", "goal.axis.z"),
                                                config.getfloat("problem", "goal.theta"))
+                print goal().rotation().x,goal().rotation().y,goal().rotation().z,goal().rotation().w
             else:
                 start().setX(config.getfloat("problem", "start.x"))
                 start().setY(config.getfloat("problem", "start.y"))
@@ -237,7 +238,7 @@ class MainWindow(QtGui.QMainWindow):
                     self.mainWidget.glViewer.setBounds(bounds)
 
     def saveConfig(self):
-        fname = str(QtGui.QFileDialog.getSaveFileName(self, 'Save Problem Configuration', 'config.cfg'))
+        fname = str(QtGui.QFileDialog.getSaveFileName(self, 'Save Problem Configuration', 'config.cfg')[0])
         if len(fname)>0:
             config = ConfigParser.ConfigParser()
             config.add_section("problem")
@@ -294,7 +295,7 @@ class MainWindow(QtGui.QMainWindow):
                 config.set("problem", "volume.min.y", b.low[1])
                 config.set("problem", "volume.max.x", b.high[0])
                 config.set("problem", "volume.max.y", b.high[1])
-            config.write(open(fname, 'wb'))
+            config.write(open(fname,"wb"))
             self.msgInform("Saved " + fname)
 
     def openPath(self):
@@ -430,6 +431,11 @@ class MainWindow(QtGui.QMainWindow):
                 planner = og.EST(si)
                 planner.setRange(self.mainWidget.plannerWidget.geometricPlanning.ESTRange.value())
                 planner.setGoalBias(self.mainWidget.plannerWidget.geometricPlanning.ESTGoalBias.value())
+            elif self.planner==9:
+                planner = og.GNAT(si,self.mainWidget.plannerWidget.geometricPlanning.GNATProjected.value(),self.mainWidget.plannerWidget.geometricPlanning.GNATDegree[0].value(), self.mainWidget.plannerWidget.geometricPlanning.GNATDegree[1].value(), self.mainWidget.plannerWidget.geometricPlanning.GNATDegree[2].value(),self.mainWidget.plannerWidget.geometricPlanning.GNATDataNum.value(),self.mainWidget.plannerWidget.geometricPlanning.GNATestimatedDimension.value())
+                planner.setRange(self.mainWidget.plannerWidget.geometricPlanning.GNATRange.value())
+                planner.setGoalBias(self.mainWidget.plannerWidget.geometricPlanning.GNATGoalBias.value())
+
         else:
             if self.planner==0:
                 planner = oc.KPIECE1(si)
@@ -483,8 +489,8 @@ class MainWindow(QtGui.QMainWindow):
         self.omplSetup.setup()
 
     def solve(self):
-        self.configureApp()
         self.msgDebug(str(self.omplSetup))
+        self.configureApp()
 
         solved = self.omplSetup.solve(self.timeLimit)
 
@@ -1045,10 +1051,12 @@ class Pose3DBox(QtGui.QGroupBox):
             self.posy.setValue(state.getY())
             self.posz.setValue(state.getZ())
             q = state.rotation()
-            rad2deg = 180/pi
+            rad2deg = 180.0/pi
+            v = q.x*q.y+q.w*q.z;
+            print v
             self.rotx.setValue(rad2deg * atan2(2.*(q.w*q.x+q.y*q.z), 1.-2.*(q.x*q.x+q.y*q.y)))
-            self.roty.setValue(rad2deg * asin(2.*(q.w*q.y-q.z*q.x)))
             self.rotz.setValue(rad2deg * atan2(2.*(q.w*q.z+q.x*q.y), 1.-2.*(q.y*q.y+q.z*q.z)))
+            self.roty.setValue(rad2deg * asin(2.*(q.w*q.y-q.z*q.x)))
         else:
             self.posx.setValue(state.getX())
             self.posy.setValue(state.getY())
@@ -1063,8 +1071,10 @@ class Pose3DBox(QtGui.QGroupBox):
         state().setY(self.posy.value())
         state().setZ(self.posz.value())
         angles = [self.rotx.value(), self.roty.value(), self.rotz.value()]
-        c = [ cos(angle*pi/360.) for angle in angles ]
-        s = [ sin(angle*pi/360.) for angle in angles ]
+        print "Debug: "
+        print angles;
+        c = [ cos(angle/2.0*pi/180.) for angle in angles ]
+        s = [ sin(angle/2.0*pi/180.) for angle in angles ]
         rot = state().rotation()
         rot.w = c[0]*c[1]*c[2] - s[0]*s[1]*s[2]
         rot.x = s[0]*c[1]*c[2] + c[0]*s[1]*s[2]
@@ -1147,7 +1157,8 @@ class GeometricPlannerWidget(QtGui.QGroupBox):
         self.plannerSelect.addItem('RRT')
         self.plannerSelect.addItem('Lazy RRT')
         self.plannerSelect.addItem('EST')
-        self.plannerSelect.setMinimumContentsLength(10)
+        self.plannerSelect.addItem('GNAT')
+        self.plannerSelect.setMinimumContentsLength(11)
         self.plannerSelect.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLength)
 
         # KPIECE options
@@ -1307,6 +1318,62 @@ class GeometricPlannerWidget(QtGui.QGroupBox):
         layout.addWidget(self.ESTGoalBias, 1, 1)
         self.ESTOptions.setLayout(layout)
 
+        # GNAT options
+        self.GNATOptions = QtGui.QGroupBox('GNAT options')
+        GNATgoalBiasLabel = QtGui.QLabel('Goal bias')
+        GNATrangeLabel = QtGui.QLabel('Range')
+        GNATdegreeLabel = QtGui.QLabel('Degree Info (Global Degree,Min,Max)')
+        GNATdataNumLabel = QtGui.QLabel('Max Data Number')
+        GNATestimatedDimensionLabel = QtGui.QLabel('Estimated Dimension')
+        GNATborderFractionLabel = QtGui.QLabel('Border Fraction')
+        GNATUseProjectedLabel = QtGui.QLabel('Use Projected Distance')
+        self.GNATRange = QtGui.QDoubleSpinBox()
+        self.GNATDegree = (QtGui.QSpinBox(),QtGui.QSpinBox(),QtGui.QSpinBox())
+        self.GNATDataNum = QtGui.QSpinBox()
+        self.GNATestimatedDimension = QtGui.QDoubleSpinBox()
+        self.GNATBorderFraction = QtGui.QDoubleSpinBox()
+        self.GNATProjected = QtGui.QSpinBox()
+        self.GNATProjected.setRange(0,1);
+        self.GNATProjected.setValue(0);
+        self.GNATRange.setRange(0, 10000)
+        self.GNATRange.setSingleStep(1)
+        self.GNATRange.setValue(0)
+        self.GNATGoalBias = QtGui.QDoubleSpinBox()
+        self.GNATGoalBias.setRange(0, 1)
+        self.GNATGoalBias.setSingleStep(.05)
+        self.GNATGoalBias.setValue(0.05)
+        for k in range(0,len(self.GNATDegree)):
+          self.GNATDegree[k].setRange(2,1000)
+          self.GNATDegree[k].setSingleStep(1)
+        self.GNATDegree[0].setValue(16)
+        self.GNATDegree[1].setValue(12)
+        self.GNATDegree[2].setValue(24)
+        self.GNATDataNum.setRange(0,1000);
+        self.GNATDataNum.setSingleStep(1);
+        self.GNATDataNum.setValue(6);
+        self.GNATestimatedDimension.setRange(0.0,10000.0);
+        self.GNATestimatedDimension.setSingleStep(1.0);
+        self.GNATestimatedDimension.setValue(12.0);
+        self.GNATBorderFraction.setRange(0,1.0);
+        self.GNATBorderFraction.setSingleStep(0.01);
+        self.GNATBorderFraction.setValue(0.5);
+        layout = QtGui.QGridLayout()
+        layout.addWidget(GNATrangeLabel, 0, 0, QtCore.Qt.AlignRight)
+        layout.addWidget(self.GNATRange, 0, 1)
+        layout.addWidget(GNATgoalBiasLabel, 1, 0, QtCore.Qt.AlignRight)
+        layout.addWidget(self.GNATGoalBias, 1, 1)
+        layout.addWidget(GNATdegreeLabel,2,0, QtCore.Qt.AlignRight)
+        for k in range(0,len(self.GNATDegree)):
+          layout.addWidget(self.GNATDegree[k],2+k,1)
+        layout.addWidget(GNATdataNumLabel,5,0, QtCore.Qt.AlignRight)
+        layout.addWidget(self.GNATDataNum,5,1, QtCore.Qt.AlignRight)
+        layout.addWidget(GNATestimatedDimensionLabel,6,0, QtCore.Qt.AlignRight)
+        layout.addWidget(self.GNATestimatedDimension,6,1, QtCore.Qt.AlignRight)
+        layout.addWidget(GNATUseProjectedLabel,7,0,QtCore.Qt.AlignRight)
+        layout.addWidget(self.GNATProjected,7,1);
+        self.GNATOptions.setLayout(layout)
+
+
         self.stackedWidget = QtGui.QStackedWidget()
         self.stackedWidget.addWidget(self.KPIECEOptions)
         self.stackedWidget.addWidget(self.BKPIECEOptions)
@@ -1317,6 +1384,7 @@ class GeometricPlannerWidget(QtGui.QGroupBox):
         self.stackedWidget.addWidget(self.RRTOptions)
         self.stackedWidget.addWidget(self.LazyRRTOptions)
         self.stackedWidget.addWidget(self.ESTOptions)
+        self.stackedWidget.addWidget(self.GNATOptions)
         self.plannerSelect.activated[int].connect(self.stackedWidget.setCurrentIndex)
 
         timeLimitLabel = QtGui.QLabel('Time (sec.)')
