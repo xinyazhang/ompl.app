@@ -111,11 +111,11 @@ class MainWindow(QtGui.QMainWindow):
 
         # connect timeLimit widgets in geometric and control planning with each other and with the
         # MainWindow.setTimeLimit method
-        self.mainWidget.plannerWidget.geometricPlanning.timeLimit.valueChanged.connect(self.setTimeLimit)
-        self.mainWidget.plannerWidget.geometricPlanning.timeLimit.valueChanged.connect(
+        self.mainWidget.plannerWidget.geometricPlanning.timeLimit.valueChanged[float].connect(self.setTimeLimit)
+        self.mainWidget.plannerWidget.geometricPlanning.timeLimit.valueChanged[float].connect(
             self.mainWidget.plannerWidget.controlPlanning.timeLimit.setValue)
-        self.mainWidget.plannerWidget.controlPlanning.timeLimit.valueChanged.connect(self.setTimeLimit)
-        self.mainWidget.plannerWidget.controlPlanning.timeLimit.valueChanged.connect(
+        self.mainWidget.plannerWidget.controlPlanning.timeLimit.valueChanged[float].connect(self.setTimeLimit)
+        self.mainWidget.plannerWidget.controlPlanning.timeLimit.valueChanged[float].connect(
             self.mainWidget.plannerWidget.geometricPlanning.timeLimit.setValue)
         self.timeLimit = self.mainWidget.plannerWidget.geometricPlanning.timeLimit.value()
 
