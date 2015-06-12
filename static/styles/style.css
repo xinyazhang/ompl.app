@@ -1,0 +1,113 @@
+a {
+	color: #ddd !important;
+/*	font-size: 16px;*/
+	font-weight: 200;
+}
+a:active {
+	color: #fff !important;
+	background-color: #080808 !important;
+}
+a:hover {
+	color: #fff !important;
+	cursor: pointer;
+/*	border-bottom: 2px solid #fff;*/
+}
+
+body {
+	font-size: 16px;
+	padding-top: 50px;
+}
+
+h1, h2, h3 {
+	font-weight: 200;
+}
+h4 {
+	font-weight: 400;
+}
+hr {
+	border-width: 1.5px;
+	border-color: black;
+	width: 80%;
+}
+
+.active_nav_item {
+/*	border-bottom: 2px solid #fff;*/
+	background-color: #080808;
+}
+
+.button {
+	border-radius: 4px;
+	background-color: #022037;
+	cursor: pointer;
+	display: inline-block;
+	font-size: 14px;
+	margin-right: 10px;
+	margin-left: 10px;
+	padding: 6px 12px;
+	text-align: center;
+	vertical-align: middle;
+	width: 100px;
+}
+
+.footer {
+	background-color: #022037;
+/*	background-image: -webkit-linear-gradient(top, #034170, #000);*/
+	color: #fff;
+	font-size: 14px;
+	margin-top: 20px;
+	padding: 10px;
+	text-align: center;
+	width: 100%;
+}
+
+.form-control {
+	display: inline;
+/*	width: 30%;*/
+	
+	
+}
+
+.navbar {
+	background-color: #022037;
+/*	background-image: -webkit-linear-gradient(top, #034170, #000);*/
+}
+.navbar-brand {
+	font-size: 36px;
+	font-weight: 100;
+}
+
+.tabs {
+	background-color: #022037;
+}
+.tabs>li {
+	float: left;
+}
+
+.tabs>li>a:hover {
+	background-color: #080808;
+}
+.tabs>li.active>a {
+	background-color: #080808;
+}
+
+.pane-title {
+	font-size: 30px;
+	font-weight: 200;
+	padding-top: 10px;
+	padding-bottom: 20px;
+	text-align: center;
+}
+
+.tab-content {
+	border: 2px solid #080808;
+	padding: 10px;
+/*	height: 564px;*/
+}
+
+.visualization {
+	background-color: #fafafa;
+	border: 2px solid #080808;
+	float: right;
+	height: 606;
+	padding: 0px;
+}
