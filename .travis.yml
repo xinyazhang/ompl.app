@@ -1,0 +1,72 @@
+sudo: false
+cache:
+  apt: true
+  directories:
+    - /home/travis/build/ompl/omplapp/build/pyplusplus
+language: cpp
+
+os:
+  - linux
+  - osx
+
+env:
+#  - BUILD_TYPE=Debug
+  - BUILD_TYPE=Release
+
+matrix:
+  allow_failures:
+    - os: osx
+
+addons:
+  apt:
+    packages:
+      - libboost-all-dev
+      - python-dev
+      - libode-dev
+      - libeigen3-dev
+      - python-qt4-dev
+      - python-qt4-gl
+      - python-opengl
+      - freeglut3-dev
+      - libassimp-dev
+
+install:
+  - if [ "$TRAVIS_OS_NAME" = "osx"   ]; then
+      brew update;
+      brew tap homebrew/science;
+      brew outdated boost || brew upgrade boost;
+      brew install ode eigen libccd assimp;
+    fi
+
+script:
+  # get OMPL subrepository
+  - git clone --depth=1 --branch=master git://github.com/ompl/ompl.git
+
+  # Create build directory
+  - mkdir -p build
+  - cd build
+
+  # Configure
+  - cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DOMPL_LOCAL_PYPLUSPLUS_INSTALL=ON -DOMPL_REGISTRATION=OFF -DCMAKE_INSTALL_PREFIX=tmp ..
+
+  # Skip Python bindings on OS X, since brew doesn't have a compiler that can compile gccxml.
+  # On Linux, we need to make sure cmake finds the locally installed gccxml
+  # and not the one in /usr/bin
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+      if [ ! -x "pyplusplus/bin/gccxml" ]; then make installpyplusplus; fi;
+      rm CMakeCache.txt;
+      cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DOMPL_LOCAL_PYPLUSPLUS_INSTALL=ON -DOMPL_REGISTRATION=OFF -DCMAKE_INSTALL_PREFIX=tmp -DGCCXML=pyplusplus/bin/gccxml ..;
+      make -j2 update_bindings;
+    fi
+
+  # Build
+  - make -j4
+
+  # Run unit tests
+  # On OS X, exclude test_machine_specs; fails due to "lazy" memory freeing in Release mode (test passes in Debug builds).
+  # On OS X, exclude test_random; fails due to bug in Boost.Random in 1.56.
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+      ctest -E 'test_(machine_specs|random)';
+    else
+      ctest;
+    fi
