@@ -10,23 +10,9 @@
 
 /* Author: Ioan Sucan */
 
+#include "config_planner.h"
 #include <omplapp/apps/SE3RigidBodyPlanning.h>
 #include <omplapp/config.h>
-#include <ompl/geometric/planners/rrt/RRTConnect.h>
-#include <ompl/geometric/planners/rrt/RRT.h>
-#include <ompl/geometric/planners/kpiece/LBKPIECE1.h>
-#include <ompl/geometric/planners/kpiece/BKPIECE1.h>
-#include <ompl/geometric/planners/kpiece/KPIECE1.h>
-#include <ompl/geometric/planners/sbl/SBL.h>
-#include <ompl/geometric/planners/est/EST.h>
-#include <ompl/geometric/planners/prm/PRM.h>
-#include <ompl/geometric/planners/bitstar/BITstar.h>
-#include <ompl/geometric/planners/pdst/PDST.h>
-
-#include <ompl/base/samplers/UniformValidStateSampler.h>
-#include <ompl/base/samplers/GaussianValidStateSampler.h>
-#include <ompl/base/samplers/ObstacleBasedValidStateSampler.h>
-#include <ompl/base/samplers/MaximizeClearanceValidStateSampler.h>
 
 using namespace ompl;
 
@@ -113,74 +99,7 @@ int main(int argc, char* argv[])
 #endif
     setup.setPlanner(planner);
 #endif
-    switch (planner_id) {
-	    case 0:
-		    setup.setPlanner(std::make_shared<geometric::RRTConnect>(setup.getSpaceInformation()));
-		    break;
-	    case 1:
-		    setup.setPlanner(std::make_shared<geometric::RRT>(setup.getSpaceInformation()));
-		    break;
-	    case 2:
-		    setup.setPlanner(std::make_shared<geometric::BKPIECE1>(setup.getSpaceInformation()));
-		    break;
-	    case 3:
-		    setup.setPlanner(std::make_shared<geometric::LBKPIECE1>(setup.getSpaceInformation()));
-		    break;
-	    case 4:
-		    setup.setPlanner(std::make_shared<geometric::KPIECE1>(setup.getSpaceInformation()));
-		    break;
-	    case 5:
-		    setup.setPlanner(std::make_shared<geometric::SBL>(setup.getSpaceInformation()));
-		    break;
-	    case 6:
-		    setup.setPlanner(std::make_shared<geometric::EST>(setup.getSpaceInformation()));
-		    break;
-	    case 7:
-		    setup.setPlanner(std::make_shared<geometric::PRM>(setup.getSpaceInformation()));
-		    break;
-	    case 8:
-		    setup.setPlanner(std::make_shared<geometric::BITstar>(setup.getSpaceInformation()));
-		    break;
-	    case 9:
-		    setup.setPlanner(std::make_shared<geometric::PDST>(setup.getSpaceInformation()));
-		    break;
-	    default:
-		    break;
-    };
-    switch (sampler_id) {
-	    case 0:
-		    setup.getSpaceInformation()->setValidStateSamplerAllocator(
-				    [](const base::SpaceInformation *si) -> base::ValidStateSamplerPtr
-				    {
-				    return std::make_shared<base::UniformValidStateSampler>(si);
-				    });
-		    break;
-	    case 1:
-		    setup.getSpaceInformation()->setValidStateSamplerAllocator(
-				    [](const base::SpaceInformation *si) -> base::ValidStateSamplerPtr
-				    {
-				    return std::make_shared<base::GaussianValidStateSampler>(si);
-				    });
-		    break;
-	    case 2:
-		    setup.getSpaceInformation()->setValidStateSamplerAllocator(
-				    [](const base::SpaceInformation *si) -> base::ValidStateSamplerPtr
-				    {
-				    return std::make_shared<base::ObstacleBasedValidStateSampler>(si);
-				    });
-		    break;
-	    case 3:
-		    setup.getSpaceInformation()->setValidStateSamplerAllocator(
-				    [](const base::SpaceInformation *si) -> base::ValidStateSamplerPtr
-				    {
-				    auto vss = std::make_shared<base::MaximizeClearanceValidStateSampler>(si);
-				    vss->setNrImproveAttempts(5);
-				    return vss;
-				    });
-		    break;
-	    default:
-		    break;
-    }
+    config_planner(setup, planner_id, sampler_id);
 
     setup.setRobotMesh(robot_fname.c_str());
     setup.setEnvironmentMesh(env_fname.c_str());
