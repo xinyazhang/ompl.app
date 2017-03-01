@@ -15,6 +15,7 @@
 #include <ompl/geometric/planners/rrt/LazyRRT.h>
 #include <ompl/geometric/planners/rrt/LazyLBTRRT.h>
 #include <ompl/geometric/planners/prm/SPARS.h>
+#include <ompl/geometric/planners/rrt/ReRRT.h>
 
 #include <ompl/base/samplers/UniformValidStateSampler.h>
 #include <ompl/base/samplers/GaussianValidStateSampler.h>
@@ -79,6 +80,9 @@ void config_planner(app::SE3RigidBodyPlanning& setup, int planner_id, int sample
 			break;
 		case 14:
 			set_planner<geometric::SPARS>(setup);
+			break;
+		case 15:
+			set_planner<geometric::ReRRT>(setup);
 			break;
 		default:
 			break;

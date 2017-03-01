@@ -18,7 +18,8 @@ if (OMPL_BUILD_DEMOS)
     add_omplapp_demo(demo_SE3MultiRigidBodyPlanning SE3RigidBodyPlanning/SE3MultiRigidBodyPlanning.cpp)
     add_omplapp_demo(demo_CollisionCheckers SE3RigidBodyPlanning/CollisionCheckers.cpp)
     add_omplapp_demo(demo_AnytimePathShortening AnytimePathShorteningDemo.cpp)
-    add_omplapp_demo(demo_Alpha SE3RigidBodyPlanning/Alpha.cpp)
+    add_omplapp_demo(demo_Alpha SE3RigidBodyPlanning/Alpha.cpp
+    	    SE3RigidBodyPlanning/config_planner.cc)
     add_omplapp_demo(demo_Alpha-1.0 SE3RigidBodyPlanning/Alpha-1.0.cpp
     	    SE3RigidBodyPlanning/config_planner.cc)
     add_omplapp_demo(demo_Alpha-1.1 SE3RigidBodyPlanning/Alpha-1.1.cpp
