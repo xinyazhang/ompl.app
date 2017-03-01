@@ -19,6 +19,9 @@ if (OMPL_BUILD_DEMOS)
     add_omplapp_demo(demo_CollisionCheckers SE3RigidBodyPlanning/CollisionCheckers.cpp)
     add_omplapp_demo(demo_AnytimePathShortening AnytimePathShorteningDemo.cpp)
     add_omplapp_demo(demo_Alpha SE3RigidBodyPlanning/Alpha.cpp)
+    add_omplapp_demo(demo_Alpha-1.0 SE3RigidBodyPlanning/Alpha-1.0.cpp)
+    add_omplapp_demo(demo_Alpha-1.1 SE3RigidBodyPlanning/Alpha-1.1.cpp)
+    add_omplapp_demo(demo_Elk SE3RigidBodyPlanning/Elk.cpp)
 
     # create executable for planning with OPENDE
     if (OPENDE_FOUND AND DRAWSTUFF_FOUND)

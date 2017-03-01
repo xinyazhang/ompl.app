@@ -42,63 +42,23 @@ int main(int argc, char* argv[])
     // plan in SE3
     app::SE3RigidBodyPlanning setup;
 
-#if 0
-    // load the robot and the environment
-    std::string robot_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/alpha-1.5.org.obj";
-    std::string env_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/alpha_env-1.5.org.obj";
-    constexpr double sx = 20.97;
-    constexpr double sy = 8.23;
-    constexpr double sz = 11.2;
-    constexpr double srx = -1.0;
-    constexpr double sry = 0.0;
-    constexpr double srz = 0.0;
-    constexpr double srt = 1.18682389136;
-    constexpr double gx = 17.97;
-    constexpr double gy = 1.23;
-    constexpr double gz = 33.2;
-    constexpr double grx = 1.0;
-    constexpr double gry = 0.0;
-    constexpr double grz = 0.0;
-    constexpr double grt = 0.0;
-    constexpr double cdres = 0.01;
-#elif 1
-    std::string robot_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/alpha-1.2.org.obj";
-    std::string env_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/alpha_env-1.2.org.obj";
-    constexpr double sx = 17.97;
-    constexpr double sy = 7.23;
+    std::string robot_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/alpha-1.0.org.obj";
+    std::string env_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/alpha_env-1.0.org.obj";
+    constexpr double sx = 16.97;
+    constexpr double sy = 1.23;
     constexpr double sz = 10.2;
-    // constexpr double sz = 15.2; // Collide, sancheck
     constexpr double srx = 1.0;
     constexpr double sry = 0.0;
     constexpr double srz = 0.0;
     constexpr double srt = 0.0;
     constexpr double gx = 16.97;
     constexpr double gy = 1.23;
-    constexpr double gz = 33.2;
+    constexpr double gz = 29.2;
     constexpr double grx = 1.0;
     constexpr double gry = 0.0;
     constexpr double grz = 0.0;
     constexpr double grt = 0.0;
     constexpr double cdres = 0.0001;
-#else
-    std::string robot_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/alpha-1.1.org.obj";
-    std::string env_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/alpha_env-1.1.org.obj";
-    constexpr double sx = 21.97;
-    constexpr double sy = -6.77;
-    constexpr double sz = 16.2;
-    constexpr double srx = -0.192752722827;
-    constexpr double sry = 0.515540575486;
-    constexpr double srz = -0.834903768628;
-    constexpr double srt = 0.842075272911;
-    constexpr double gx = 16.97;
-    constexpr double gy = 1.23;
-    constexpr double gz = 36.2;
-    constexpr double grx = 1.0;
-    constexpr double gry = 0.0;
-    constexpr double grz = 0.0;
-    constexpr double grt = 0.0;
-    constexpr double cdres = 0.0001;
-#endif
 
 #if 0
 #if 0
@@ -227,7 +187,7 @@ int main(int argc, char* argv[])
 
 #if 1
     // try to solve the problem
-    if (setup.solve(3600 * 18))
+    if (setup.solve(3600 * 36))
     {
         // simplify & print the solution
         setup.simplifySolution();
