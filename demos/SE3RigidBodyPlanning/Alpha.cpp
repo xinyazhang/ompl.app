@@ -10,25 +10,32 @@
 
 /* Author: Ioan Sucan */
 
-#include "config_planner.h"
 #include <omplapp/apps/SE3RigidBodyPlanning.h>
 #include <omplapp/config.h>
+#include <omplapp/geometry/detail/FCLContinuousMotionValidator.h>
+#include "config_planner.h"
 
 using namespace ompl;
 
 int main(int argc, char* argv[])
 {
 	std::cout << "-----BEGIN-----" << std::endl;
-	if (argc < 3) {
+	if (argc < 4) {
 		std::cout << "INVALID NUMBER OF ARGUMENTS, EXITING" << std::endl;
 		return -1;
 	}
 	int planner_id = atoi(argv[1]);
 	int sampler_id = atoi(argv[2]);
+	double days = atof(argv[3]);
+	const char* dump_plan_fn = nullptr;
+	if (argc >= 5) {
+		dump_plan_fn = argv[4];
+		std::cout << "Planner data will be dumped into file: " << dump_plan_fn << std::endl;
+	}
     // plan in SE3
     app::SE3RigidBodyPlanning setup;
 
-#if 0
+#if 1
     // load the robot and the environment
     std::string robot_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/alpha-1.5.org.obj";
     std::string env_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/alpha_env-1.5.org.obj";
@@ -99,6 +106,7 @@ int main(int argc, char* argv[])
 #endif
     setup.setPlanner(planner);
 #endif
+    // we call setup just so print() can show more information
     config_planner(setup, planner_id, sampler_id);
 
     setup.setRobotMesh(robot_fname.c_str());
@@ -138,19 +146,31 @@ int main(int argc, char* argv[])
 	    pnc->setPropagationStepSize(cdres);
     }
 #endif
-    // we call setup just so print() can show more information
-    setup.setup();
 
+    setup.setup();
+#if 0 // FCL looks buggy
+    setup.setStateValidityCheckerType(app::FCL);
+    setup.getSpaceInformation()->setMotionValidator(
+	std::make_shared<app::FCLContinuousMotionValidator>(
+		setup.getSpaceInformation(), setup.getMotionModel()));
+#endif
     std::cout << "Trying to solve " << robot_fname << " v.s. " << env_fname << std::endl;
     setup.print();
 
 #if 1
     // try to solve the problem
-    if (setup.solve(3600 * 18))
+    if (setup.solve(3600 * 24 * days))
     {
         // simplify & print the solution
         setup.simplifySolution();
         setup.getSolutionPath().printAsMatrix(std::cout);
+    }
+    if (dump_plan_fn) {
+	    base::PlannerData pdata(setup.getSpaceInformation());
+	    setup.getPlanner()->getPlannerData(pdata);
+	    std::ofstream fout(dump_plan_fn);
+	    fout.precision(17);
+	    printPlan(pdata, fout);
     }
 #else
     int niter = 0;

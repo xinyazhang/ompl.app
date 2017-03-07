@@ -24,7 +24,10 @@ if (OMPL_BUILD_DEMOS)
     	    SE3RigidBodyPlanning/config_planner.cc)
     add_omplapp_demo(demo_Alpha-1.1 SE3RigidBodyPlanning/Alpha-1.1.cpp
     	    SE3RigidBodyPlanning/config_planner.cc)
-    add_omplapp_demo(demo_Elk SE3RigidBodyPlanning/Elk.cpp)
+    add_omplapp_demo(demo_Elk SE3RigidBodyPlanning/Elk.cpp
+    	    SE3RigidBodyPlanning/config_planner.cc)
+    add_omplapp_demo(demo_Elk-1.1 SE3RigidBodyPlanning/Elk-1.1.cc
+    	    SE3RigidBodyPlanning/config_planner.cc)
 
     # create executable for planning with OPENDE
     if (OPENDE_FOUND AND DRAWSTUFF_FOUND)
