@@ -1,4 +1,5 @@
 #include "config_planner.h"
+#include <algorithm>
 
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
 #include <ompl/geometric/planners/rrt/RRT.h>
@@ -120,5 +121,25 @@ void config_planner(app::SE3RigidBodyPlanning& setup, int planner_id, int sample
 			break;
 		default:
 			break;
+	}
+}
+
+void printPlan(const ompl::base::PlannerData& pdata, std::ostream& fout)
+{
+	auto nv = pdata.numVertices();
+	const auto ss = pdata.getSpaceInformation()->getStateSpace();
+	std::vector<double> reals;
+	for (unsigned int i = 0; i < nv; i++) {
+		const auto* state = pdata.getVertex(i).getState();
+		ss->copyToReals(reals, state);
+		fout << "v ";
+		std::copy(reals.begin(), reals.end(), std::ostream_iterator<double>(fout, " "));
+		fout << std::endl;
+	}
+	for (unsigned int i = 0; i < nv; i++) {
+		std::vector<unsigned int> edges;
+		pdata.getEdges(i, edges);
+		for (auto j : edges)
+			fout << "e " << i << " " << j << std::endl;
 	}
 }
