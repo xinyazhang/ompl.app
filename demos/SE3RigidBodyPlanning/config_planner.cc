@@ -1,5 +1,6 @@
 #include "config_planner.h"
 #include <algorithm>
+#include <vector>
 
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
 #include <ompl/geometric/planners/rrt/RRT.h>
@@ -23,6 +24,8 @@
 #include <ompl/base/samplers/ObstacleBasedValidStateSampler.h>
 #include <ompl/base/samplers/MaximizeClearanceValidStateSampler.h>
 
+#include <fstream>
+
 using namespace ompl;
 
 namespace {
@@ -32,9 +35,31 @@ void set_planner(app::SE3RigidBodyPlanning& setup)
 	setup.setPlanner(std::make_shared<Planner>(setup.getSpaceInformation()));
 }
 
+void load_inj(geometric::ReRRT* rerrt, const char* saminjfn)
+{
+	if (!saminjfn)
+		return;
+	std::ifstream fin(saminjfn);
+	if (!fin.is_open())
+		throw std::string("Fail to open file ") + saminjfn + std::string(" for sample injection");
+	size_t start_sample, nrow, ncol;
+	fin >> start_sample >> nrow >> ncol;
+	std::vector<std::vector<double>> samples;
+	for (size_t i = 0; i < nrow; i++) {
+		std::vector<double> line;
+		for (size_t j = 0; j < ncol; j++) {
+			double v;
+			fin >> v;
+			line.emplace_back(v);
+		}
+		samples.emplace_back(std::move(line));
+	}
+	rerrt->setStateInjection(start_sample, std::move(samples));
 }
 
-void config_planner(app::SE3RigidBodyPlanning& setup, int planner_id, int sampler_id)
+}
+
+void config_planner(app::SE3RigidBodyPlanning& setup, int planner_id, int sampler_id, const char* saminjfn)
 {
 	switch (planner_id) {
 		case 0:
@@ -83,7 +108,11 @@ void config_planner(app::SE3RigidBodyPlanning& setup, int planner_id, int sample
 			set_planner<geometric::SPARS>(setup);
 			break;
 		case 15:
-			set_planner<geometric::ReRRT>(setup);
+			{
+				auto rerrt = std::make_shared<geometric::ReRRT>(setup.getSpaceInformation());
+				load_inj(rerrt.get(), saminjfn);
+				setup.setPlanner(rerrt);
+			}
 			break;
 		default:
 			break;
