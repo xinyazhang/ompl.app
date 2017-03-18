@@ -8,7 +8,8 @@
 *
 *********************************************************************/
 
-/* Author: Ioan Sucan */
+/* Author: Xinya Zhang */
+/* Original Author: Ioan Sucan */
 
 #include "config_planner.h"
 #include <omplapp/apps/SE3RigidBodyPlanning.h>
@@ -28,9 +29,14 @@ int main(int argc, char* argv[])
 	int sampler_id = atoi(argv[2]);
 	double days = atof(argv[3]);
 	const char* dump_plan_fn = nullptr;
+	const char* sample_inj_fn = nullptr;
 	if (argc >= 5) {
 		dump_plan_fn = argv[4];
 		std::cout << "Planner data will be dumped into file: " << dump_plan_fn << std::endl;
+	}
+	if (argc >= 6) {
+		sample_inj_fn = argv[5];
+		std::cout << "Samples from file " << sample_inj_fn << " will be injected " << std::endl;
 	}
     // plan in SE3
     app::SE3RigidBodyPlanning setup;
@@ -66,7 +72,7 @@ int main(int argc, char* argv[])
 #endif
     setup.setPlanner(planner);
 #endif
-    config_planner(setup, planner_id, sampler_id);
+    config_planner(setup, planner_id, sampler_id, sample_inj_fn);
 
     setup.setRobotMesh(robot_fname.c_str());
     setup.setEnvironmentMesh(env_fname.c_str());
