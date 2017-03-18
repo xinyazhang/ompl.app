@@ -122,7 +122,8 @@ int main(int argc, char* argv[])
     if (setup.solve(3600 * 24 * days))
     {
         // simplify & print the solution
-        setup.simplifySolution();
+        // setup.simplifySolution(); // Well we need the precise solution for injection
+	std::cout.precision(17);
         setup.getSolutionPath().printAsMatrix(std::cout);
     }
     if (dump_plan_fn) {
