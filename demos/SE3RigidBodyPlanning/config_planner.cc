@@ -59,7 +59,7 @@ void load_inj(geometric::ReRRT* rerrt, const char* saminjfn)
 
 }
 
-void config_planner(app::SE3RigidBodyPlanning& setup, int planner_id, int sampler_id, const char* saminjfn)
+void config_planner(app::SE3RigidBodyPlanning& setup, int planner_id, int sampler_id, const char* saminjfn, int K)
 {
 	switch (planner_id) {
 		case 0:
@@ -111,6 +111,7 @@ void config_planner(app::SE3RigidBodyPlanning& setup, int planner_id, int sample
 			{
 				auto rerrt = std::make_shared<geometric::ReRRT>(setup.getSpaceInformation());
 				load_inj(rerrt.get(), saminjfn);
+				rerrt->setKNearest(K);
 				setup.setPlanner(rerrt);
 			}
 			break;

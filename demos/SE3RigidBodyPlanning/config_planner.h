@@ -5,7 +5,7 @@
 #include <fstream>
 #include <ompl/base/PlannerData.h>
 
-void config_planner(ompl::app::SE3RigidBodyPlanning& setup, int planner_id, int sampler_id, const char* = nullptr);
+void config_planner(ompl::app::SE3RigidBodyPlanning& setup, int planner_id, int sampler_id, const char* = nullptr, int K = 1);
 void printPlan(const ompl::base::PlannerData& pdata, std::ostream& fout);
 
 #endif

@@ -30,6 +30,7 @@ int main(int argc, char* argv[])
 	double days = atof(argv[3]);
 	const char* dump_plan_fn = nullptr;
 	const char* sample_inj_fn = nullptr;
+	int KNearest = 1;
 	if (argc >= 5) {
 		dump_plan_fn = argv[4];
 		std::cout << "Planner data will be dumped into file: " << dump_plan_fn << std::endl;
@@ -37,6 +38,10 @@ int main(int argc, char* argv[])
 	if (argc >= 6) {
 		sample_inj_fn = argv[5];
 		std::cout << "Samples from file " << sample_inj_fn << " will be injected " << std::endl;
+	}
+	if (argc >= 7) {
+		KNearest = atoi(argv[6]);
+		std::cout << "K-Nearest set to be " << KNearest << std::endl;
 	}
     // plan in SE3
     app::SE3RigidBodyPlanning setup;
@@ -72,7 +77,7 @@ int main(int argc, char* argv[])
 #endif
     setup.setPlanner(planner);
 #endif
-    config_planner(setup, planner_id, sampler_id, sample_inj_fn);
+    config_planner(setup, planner_id, sampler_id, sample_inj_fn, KNearest);
 
     setup.setRobotMesh(robot_fname.c_str());
     setup.setEnvironmentMesh(env_fname.c_str());
