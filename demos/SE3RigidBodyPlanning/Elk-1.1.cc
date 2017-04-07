@@ -25,6 +25,11 @@ int main(int argc, char* argv[])
 	int planner_id = atoi(argv[1]);
 	int sampler_id = atoi(argv[2]);
 	double days = atof(argv[3]);
+	const char* dump_plan_fn = nullptr;
+	if (argc >= 5) {
+		dump_plan_fn = argv[4];
+		std::cout << "Planner data will be dumped into file: " << dump_plan_fn << std::endl;
+	}
     // plan in SE3
     app::SE3RigidBodyPlanning setup;
 
@@ -98,6 +103,13 @@ int main(int argc, char* argv[])
         // simplify & print the solution
         setup.simplifySolution();
         setup.getSolutionPath().printAsMatrix(std::cout);
+    }
+    if (dump_plan_fn) {
+	    base::PlannerData pdata(setup.getSpaceInformation());
+	    setup.getPlanner()->getPlannerData(pdata);
+	    std::ofstream fout(dump_plan_fn);
+	    fout.precision(17);
+	    printPlan(pdata, fout);
     }
 #else
     int niter = 0;
