@@ -28,6 +28,8 @@ if (OMPL_BUILD_DEMOS)
     	    SE3RigidBodyPlanning/config_planner.cc)
     add_omplapp_demo(demo_Elk-1.1 SE3RigidBodyPlanning/Elk-1.1.cc
     	    SE3RigidBodyPlanning/config_planner.cc)
+    aux_source_directory(mtblender/ MTBLENDER_SRC)
+    add_omplapp_demo(mtblender ${MTBLENDER_SRC})
 
     # create executable for planning with OPENDE
     if (OPENDE_FOUND AND DRAWSTUFF_FOUND)
