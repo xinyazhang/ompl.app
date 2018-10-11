@@ -13,6 +13,7 @@
 #include <omplapp/apps/SE3RigidBodyPlanning.h>
 #include <omplapp/config.h>
 #include <omplapp/geometry/detail/FCLContinuousMotionValidator.h>
+#include <Eigen/Core>
 #include "config_planner.h"
 
 using namespace ompl;
@@ -35,7 +36,7 @@ int main(int argc, char* argv[])
     // plan in SE3
     app::SE3RigidBodyPlanning setup;
 
-#if 1
+#if 0
     // load the robot and the environment
     std::string robot_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/alpha-1.5.org.obj";
     std::string env_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/alpha_env-1.5.org.obj";
@@ -111,6 +112,10 @@ int main(int argc, char* argv[])
 
     setup.setRobotMesh(robot_fname.c_str());
     setup.setEnvironmentMesh(env_fname.c_str());
+    std::cout.precision(17);
+    std::cout << "Robot 0 center x at: " << setup.getRobotCenter(0).x << std::endl;
+    std::cout << "Robot 0 center y at: " << setup.getRobotCenter(0).y << std::endl;
+    std::cout << "Robot 0 center z at: " << setup.getRobotCenter(0).z << std::endl;
 
     // define start state
     base::ScopedState<base::SE3StateSpace> start(setup.getSpaceInformation());
@@ -162,7 +167,8 @@ int main(int argc, char* argv[])
     if (setup.solve(3600 * 24 * days))
     {
         // simplify & print the solution
-        setup.simplifySolution();
+        // setup.simplifySolution();
+	std::cout.precision(17);
         setup.getSolutionPath().printAsMatrix(std::cout);
     }
     if (dump_plan_fn) {
