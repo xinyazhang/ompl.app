@@ -18,6 +18,7 @@
 #include <ompl/geometric/planners/rrt/LazyLBTRRT.h>
 #include <ompl/geometric/planners/prm/SPARS.h>
 #include <ompl/geometric/planners/rrt/ReRRT.h>
+#include <ompl/geometric/planners/rrt/RRTForest.h>
 
 #include <ompl/base/samplers/UniformValidStateSampler.h>
 #include <ompl/base/samplers/GaussianValidStateSampler.h>
@@ -55,6 +56,24 @@ void load_inj(geometric::ReRRT* rerrt, const char* saminjfn)
 		samples.emplace_back(std::move(line));
 	}
 	rerrt->setStateInjection(start_sample, std::move(samples));
+}
+
+void load_inj(geometric::RRTForest* rrt_forest, const char* saminjfn)
+{
+	if (!saminjfn)
+		return;
+	std::ifstream fin(saminjfn);
+	if (!fin.is_open())
+		throw std::string("Fail to open file ") + saminjfn + std::string(" for sample injection");
+	size_t nsample, scalar_per_sample;
+	fin >> nsample >> scalar_per_sample;
+	Eigen::MatrixXd samples(scalar_per_sample, nsample);
+	for (size_t i = 0; i < nsample; i++) {
+		for (size_t j = 0; j < scalar_per_sample; j++) {
+			fin >> samples(j, i); // Sample per Column
+		}
+	}
+	rrt_forest->setSamples(std::move(samples));
 }
 
 }
@@ -113,6 +132,13 @@ void config_planner(app::SE3RigidBodyPlanning& setup, int planner_id, int sample
 				load_inj(rerrt.get(), saminjfn);
 				rerrt->setKNearest(K);
 				setup.setPlanner(rerrt);
+			}
+			break;
+		case 16:
+			{
+				auto rrt_forest = std::make_shared<geometric::RRTForest>(setup.getSpaceInformation());
+				load_inj(rrt_forest.get(), saminjfn);
+				setup.setPlanner(rrt_forest);
 			}
 			break;
 		default:
