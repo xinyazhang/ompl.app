@@ -33,8 +33,8 @@ int main(int argc, char* argv[])
     // plan in SE3
     app::SE3RigidBodyPlanning setup;
 
-    std::string robot_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/Puzzle-Part-0.5-32-centralized.obj";
-    std::string env_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/Puzzle-CounterPart-0.5-32-centralized.obj";
+    std::string robot_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/Puzzle-Part-1.0-32-centralized.obj";
+    std::string env_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/Puzzle-CounterPart-1.0-32-centralized.obj";
 #if 0
     constexpr double sx = -14.84;
     constexpr double sy = -3.92;

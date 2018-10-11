@@ -8,11 +8,14 @@
 *
 *********************************************************************/
 
+/* Author: Xinya Zhang */
 /* Original Author: Ioan Sucan */
 
 #include "config_planner.h"
 #include <omplapp/apps/SE3RigidBodyPlanning.h>
 #include <omplapp/config.h>
+#include <fstream>
+
 using namespace ompl;
 
 int main(int argc, char* argv[])
@@ -26,49 +29,56 @@ int main(int argc, char* argv[])
 	int sampler_id = atoi(argv[2]);
 	double days = atof(argv[3]);
 	const char* dump_plan_fn = nullptr;
+	const char* sample_inj_fn = nullptr;
+	int KNearest = 1;
 	if (argc >= 5) {
 		dump_plan_fn = argv[4];
 		std::cout << "Planner data will be dumped into file: " << dump_plan_fn << std::endl;
 	}
+	if (argc >= 6) {
+		sample_inj_fn = argv[5];
+		std::cout << "Samples from file " << sample_inj_fn << " will be injected " << std::endl;
+	}
+	if (argc >= 7) {
+		KNearest = atoi(argv[6]);
+		std::cout << "K-Nearest set to be " << KNearest << std::endl;
+	}
     // plan in SE3
     app::SE3RigidBodyPlanning setup;
 
-    std::string robot_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/Puzzle-Part-0.5-32-centralized.obj";
-    std::string env_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/Puzzle-CounterPart-0.5-32-centralized.obj";
-#if 0
-    constexpr double sx = -14.84;
-    constexpr double sy = -3.92;
-    constexpr double sz = -0.75;
-    constexpr double srx = 0.0;
+    std::string robot_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/alpha-1.2.org.obj";
+    std::string env_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/alpha_env-1.2.org.obj";
+    constexpr double sx = 17.97;
+    constexpr double sy = 7.23;
+    constexpr double sz = 10.2;
+    // constexpr double sz = 15.2; // Collide, sancheck
+    constexpr double srx = 1.0;
     constexpr double sry = 0.0;
-    constexpr double srz = 1.0;
-    constexpr double srt = 1.20427718388;
-    constexpr double gx = -50.0;
-    constexpr double gy = -3.92;
-    constexpr double gz = -0.75;
-    constexpr double grx = 0.0;
+    constexpr double srz = 0.0;
+    constexpr double srt = 0.0;
+    constexpr double gx = 16.97;
+    constexpr double gy = 1.23;
+    constexpr double gz = 33.2;
+    constexpr double grx = 1.0;
     constexpr double gry = 0.0;
-    constexpr double grz = 1.0;
-    constexpr double grt = 1.20427718388;
-#endif
-    constexpr double sx = -5;
-    constexpr double sy = -0.0;
-    constexpr double sz = -0.0;
-    constexpr double srx = 0.0;
-    constexpr double sry = 0.0;
-    constexpr double srz = 1.0;
-    constexpr double srt = 0.977384381117;
-    constexpr double gx = -45.0;
-    constexpr double gy = 0;
-    constexpr double gz = 0;
-    constexpr double grt = 0;
-    constexpr double grx = 1;
-    constexpr double gry = 0;
-    constexpr double grz = 0;
-
+    constexpr double grz = 0.0;
+    constexpr double grt = 0.0;
     constexpr double cdres = 0.0001;
 
-    config_planner(setup, planner_id, sampler_id);
+#if 0
+#if 0
+    auto planner = std::make_shared<geometric::RRT>(setup.getSpaceInformation());
+#elif 0
+    auto planner = std::make_shared<geometric::RRTConnect>(setup.getSpaceInformation());
+    planner->setRange(cdres * 5.0);
+#elif 0
+    auto planner = std::make_shared<geometric::PRM>(setup.getSpaceInformation());
+#else
+    auto planner = std::make_shared<geometric::SBL>(setup.getSpaceInformation());
+#endif
+    setup.setPlanner(planner);
+#endif
+    config_planner(setup, planner_id, sampler_id, sample_inj_fn, KNearest);
 
     setup.setRobotMesh(robot_fname.c_str());
     setup.setEnvironmentMesh(env_fname.c_str());
@@ -95,8 +105,8 @@ int main(int argc, char* argv[])
 
     auto gcss = setup.getGeometricComponentStateSpace()->as<base::SE3StateSpace>();
     base::RealVectorBounds b = gcss->getBounds();
-    b.setLow(-70.0);
-    b.setHigh(70.0);
+    b.setLow(-200.0);
+    b.setHigh(200.0);
     gcss->setBounds(b);
 
 #if 0
@@ -118,7 +128,8 @@ int main(int argc, char* argv[])
     if (setup.solve(3600 * 24 * days))
     {
         // simplify & print the solution
-        setup.simplifySolution();
+        // setup.simplifySolution(); // Well we need the precise solution for injection
+	std::cout.precision(17);
         setup.getSolutionPath().printAsMatrix(std::cout);
     }
     if (dump_plan_fn) {

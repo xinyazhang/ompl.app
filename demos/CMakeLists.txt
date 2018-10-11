@@ -24,9 +24,17 @@ if (OMPL_BUILD_DEMOS)
     	    SE3RigidBodyPlanning/config_planner.cc)
     add_omplapp_demo(demo_Alpha-1.1 SE3RigidBodyPlanning/Alpha-1.1.cpp
     	    SE3RigidBodyPlanning/config_planner.cc)
+    add_omplapp_demo(demo_Alpha-1.2 SE3RigidBodyPlanning/Alpha-1.2.cpp
+    	    SE3RigidBodyPlanning/config_planner.cc)
     add_omplapp_demo(demo_Elk SE3RigidBodyPlanning/Elk.cpp
     	    SE3RigidBodyPlanning/config_planner.cc)
     add_omplapp_demo(demo_Elk-1.1 SE3RigidBodyPlanning/Elk-1.1.cc
+    	    SE3RigidBodyPlanning/config_planner.cc)
+    add_omplapp_demo(demo_Elk-ls1.0 SE3RigidBodyPlanning/Elk-ls1.0.cc
+    	    SE3RigidBodyPlanning/config_planner.cc)
+    add_omplapp_demo(demo_Elk-Stage2-ls1.0 SE3RigidBodyPlanning/Elk-Stage2-ls1.0.cc
+    	    SE3RigidBodyPlanning/config_planner.cc)
+    add_omplapp_demo(demo_Elk-Stage1.5-ls1.0 SE3RigidBodyPlanning/Elk-Stage1.5-ls1.0.cc
     	    SE3RigidBodyPlanning/config_planner.cc)
     aux_source_directory(mtblender/ MTBLENDER_SRC)
     add_omplapp_demo(mtblender ${MTBLENDER_SRC})
