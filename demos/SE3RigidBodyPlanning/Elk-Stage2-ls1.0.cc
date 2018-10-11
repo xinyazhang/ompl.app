@@ -33,8 +33,8 @@ int main(int argc, char* argv[])
     // plan in SE3
     app::SE3RigidBodyPlanning setup;
 
-    std::string robot_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/Puzzle-Part-0.5-32-centralized.obj";
-    std::string env_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/Puzzle-CounterPart-0.5-32-centralized.obj";
+    std::string robot_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/Puzzle-Part-1.0-32-centralized.obj";
+    std::string env_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/Puzzle-CounterPart-1.0-32-centralized.obj";
 #if 0
     constexpr double sx = -14.84;
     constexpr double sy = -3.92;
@@ -51,20 +51,20 @@ int main(int argc, char* argv[])
     constexpr double grz = 1.0;
     constexpr double grt = 1.20427718388;
 #endif
-    constexpr double sx = -5;
-    constexpr double sy = -0.0;
-    constexpr double sz = -0.0;
-    constexpr double srx = 0.0;
-    constexpr double sry = 0.0;
-    constexpr double srz = 1.0;
-    constexpr double srt = 0.977384381117;
-    constexpr double gx = -45.0;
+    constexpr double sx = -7;
+    constexpr double sy = -1.0;
+    constexpr double sz = 12.0;
+    constexpr double srx = 0.650802071942 ;
+    constexpr double sry = -0.391041335811;
+    constexpr double srz = 0.650802071942 ;
+    constexpr double srt = 2.39607342564;
+    constexpr double gx = -5.0;
     constexpr double gy = 0;
     constexpr double gz = 0;
-    constexpr double grt = 0;
-    constexpr double grx = 1;
+    constexpr double grt = 0.977384381117;
+    constexpr double grx = 0;
     constexpr double gry = 0;
-    constexpr double grz = 0;
+    constexpr double grz = 1;
 
     constexpr double cdres = 0.0001;
 
