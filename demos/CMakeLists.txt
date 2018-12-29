@@ -36,6 +36,8 @@ if (OMPL_BUILD_DEMOS)
     	    SE3RigidBodyPlanning/config_planner.cc)
     add_omplapp_demo(demo_Elk-Stage1.5-ls1.0 SE3RigidBodyPlanning/Elk-Stage1.5-ls1.0.cc
     	    SE3RigidBodyPlanning/config_planner.cc)
+    add_omplapp_demo(demo_Dual_tiny SE3RigidBodyPlanning/Dual.cc
+                     SE3RigidBodyPlanning/config_planner.cc)
     aux_source_directory(mtblender/ MTBLENDER_SRC)
     add_omplapp_demo(mtblender ${MTBLENDER_SRC})
 

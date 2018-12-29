@@ -199,3 +199,32 @@ void printPlan(const ompl::base::PlannerData& pdata, std::ostream& fout)
 			fout << "e " << i << " " << j << std::endl;
 	}
 }
+
+void usage_planner_and_sampler()
+{
+	std::cout << R"xxx(PLANNER:
+ 0: RRTConnect
+ 1: RRT
+ 2: BKPIECE1
+ 3: LBKPIECE1
+ 4: KPIECE1
+ 5: SBL
+ 6: EST
+ 7: PRM
+ 8: BITstar
+ 9: PDST
+10: TRRT
+11: BiTRRT
+12: LazyRRT
+13: LazyLBTRRT
+14: SPARS
+15: ReRRT
+16: RRTForest
+
+SAMPLER:
+ 0: UniformValidStateSampler
+ 1: GaussianValidStateSampler
+ 2: ObstacleBasedValidStateSampler
+ 3: MaximizeClearanceValidStateSampler
+)xxx";
+}
