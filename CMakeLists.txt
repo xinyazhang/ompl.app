@@ -96,7 +96,7 @@ set_package_properties(Python PROPERTIES
     PURPOSE "Used for python bindings.")
 # This includes our own FindPython.cmake in ompl/CMakeModules. It defines,
 # among other things, the find_python_module() function used below.
-find_package(Python)
+find_package(PythonCustom)
 find_boost_python()
 
 if(PYTHON_FOUND)
