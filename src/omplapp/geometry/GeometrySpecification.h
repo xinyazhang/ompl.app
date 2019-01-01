@@ -14,11 +14,7 @@
 #define OMPLAPP_GEOMETRY_GEOMETRY_SPECIFICATION_
 
 #include "omplapp/config.h"
-#if OMPL_HAS_ASSIMP3
 #include <assimp/scene.h>
-#else
-#include <assimp/aiScene.h>
-#endif
 #include <vector>
 #include <functional>
 #include <ompl/base/State.h>
@@ -31,15 +27,13 @@ namespace ompl
         /// Specify whether bodies are moving in 2D or bodies moving in 3D
         enum MotionModel { Motion_2D, Motion_3D };
 
-        typedef std::function<const base::State *(const base::State *, unsigned int)> GeometricStateExtractor;
+        using GeometricStateExtractor = std::function<const base::State *(const base::State *, unsigned int)>;
 
         class GeometrySpecification
         {
         public:
 
-            GeometrySpecification()
-            {
-            }
+            GeometrySpecification() = default;
 
             std::vector<const aiScene *> robot;
             std::vector<aiVector3D>      robotShift;

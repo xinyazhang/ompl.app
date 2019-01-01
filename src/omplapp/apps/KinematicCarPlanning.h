@@ -36,7 +36,7 @@ namespace ompl
             distance between the front and rear axle of the car (set to 1 by
             default).
         */
-        class KinematicCarPlanning : public AppBase<CONTROL>
+        class KinematicCarPlanning : public AppBase<AppType::CONTROL>
         {
         public:
             KinematicCarPlanning();
@@ -79,7 +79,7 @@ namespace ompl
 
             virtual void ode(const control::ODESolver::StateType& q, const control::Control *ctrl, control::ODESolver::StateType& qdot);
 
-            virtual void postPropagate(const base::State* state, const control::Control* control, const double duration, base::State* result);
+            virtual void postPropagate(const base::State* state, const control::Control* control, double duration, base::State* result);
 
             static control::ControlSpacePtr constructControlSpace()
             {
@@ -90,8 +90,8 @@ namespace ompl
                 return std::make_shared<base::SE2StateSpace>();
             }
 
-            double timeStep_;
-            double lengthInv_;
+            double timeStep_{1e-2};
+            double lengthInv_{1.};
             control::ODESolverPtr odeSolver;
         };
     }

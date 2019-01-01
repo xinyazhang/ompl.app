@@ -12,7 +12,7 @@ from inspect import isclass
 # The ConfigParser module has been renamed to configparser in Python 3.0
 try:
     import ConfigParser
-except:
+except ImportError:
     import configparser as ConfigParser
 
 # Constants
@@ -33,7 +33,7 @@ try:
     from ompl import app as oa
     from ompl.util import OMPL_DEBUG, OMPL_INFORM, OMPL_WARN, OMPL_ERROR
     from ompl_benchmark_statistics import readBenchmarkLog
-except:
+except ImportError:
     sys.path.insert(0, join(ompl_app_root, 'ompl/py-bindings'))
     import ompl
     from ompl import base as ob
@@ -45,32 +45,28 @@ except:
     from ompl_benchmark_statistics import readBenchmarkLog
 
 import flask
-from flask import Flask
 from werkzeug import secure_filename
 
 from celery import Celery
-from celery.result import AsyncResult
 
 
 def initialize():
     ompl.initializePlannerLists()
 
-    if (sys.version_info > (3, 0)):
-        config = ConfigParser.ConfigParser(strict = False)
+    if sys.version_info > (3, 0):
+        config = ConfigParser.ConfigParser(strict=False)
     else:
         config = ConfigParser.ConfigParser()
 
     conf_file_loc = None
-    for loc in [join(ompl_app_root, join("ompl", "ompl.conf")), join(prefix, "share/ompl/ompl.conf")]:
+    for loc in [join(ompl_app_root, join("ompl", "ompl.conf")), \
+        join(prefix, "share/ompl/ompl.conf")]:
         if exists(loc):
             conf_file_loc = loc
             break
-    conf_file = open(conf_file_loc, "r")
-    config.readfp(conf_file)
+    config.read([conf_file_loc])
     preferences = config._sections["webapp"]
     preferences["plannerarena_port"] = config.get("plannerarena", "plannerarena_port")
-
-    conf_file.close()
     return preferences
 
 def make_celery():
@@ -81,12 +77,13 @@ def make_celery():
     broker_url = conf[broker_name]["broker"]
     backend_url = conf[broker_name]["backend"]
 
-    if ("broker_port" in preferences):
+    if "broker_port" in preferences:
         # If a port is specified, use it. Otherwise the default is automatically used
         broker_url += ":" + preferences["broker_port"]
         backend_url += ":" + preferences["broker_port"]
 
     celery = Celery(app.name, broker=broker_url, backend=backend_url)
+    celery.conf.update({u'task_default_queue': u'omplapp'})
     return celery
 
 
@@ -120,14 +117,12 @@ def parse_cfg(cfg_path):
     settings dictionary
     """
 
-    if (sys.version_info > (3, 0)):
-        config = ConfigParser.ConfigParser(strict = False)
+    if sys.version_info > (3, 0):
+        config = ConfigParser.ConfigParser(strict=False)
     else:
         config = ConfigParser.ConfigParser()
 
-    cfg_file = open(cfg_path, 'r')
-    config.readfp(cfg_file)
-    cfg_file.close()
+    config.read([cfg_path])
     return config._sections['problem']
 
 
@@ -135,7 +130,7 @@ def save_cfg_file(name, session_id, text):
     """
     Saves a .cfg file intended for benchmarking
     """
-    file_loc = join(ompl_sessions_dir, session_id, name);
+    file_loc = join(ompl_sessions_dir, session_id, name)
     f = open(file_loc + ".cfg", 'w')
     f.write(text)
     f.close()
@@ -165,7 +160,7 @@ def format_solution(path, solved):
             # print "\t " + line
             path_list.append(line.strip().split(" "))
 
-        solution['path'] = path_list;
+        solution['path'] = path_list
 
         solution['pathAsMatrix'] = path.printAsMatrix()
     else:
@@ -182,7 +177,7 @@ def get_offset(env_mesh, robot_mesh):
     # full state
     start = ompl_setup.getDefaultStartState()
     # just the first geometric component
-    start = ompl_setup.getGeometricComponentState(start,0)
+    start = ompl_setup.getGeometricComponentState(start, 0)
     # extract x,y,z coords
     # print start
     offset = {}
@@ -222,7 +217,8 @@ def setup(problem):
         space = ob.SE3StateSpace()
         # Set the start state
         start = ob.State(space)
-        start().setXYZ(float(problem['start.x']), float(problem['start.y']), float(problem['start.z']))
+        start().setXYZ(float(problem['start.x']), float(problem['start.y']), \
+            float(problem['start.z']))
 
         # Set the start rotation
         start().rotation().x = float(problem['start.q.x'])
@@ -282,7 +278,7 @@ def solve(problem):
     """
 
     # Sets up the robot type related information
-    ompl_setup = setup(problem);
+    ompl_setup = setup(problem)
 
     # Load the planner
     space_info = ompl_setup.getSpaceInformation()
@@ -295,10 +291,9 @@ def solve(problem):
         ompl_setup.setPlanner(planner)
 
     # Set the optimization objective
-    objectives = {'length': 'PathLengthOptimizationObjective',
-        'max_min_clearance': 'MaximizeMinClearanceObjective',
-        'mechanical_work': 'MechanicalWorkOptimizationObjective'
-    }
+    objectives = {'length': 'PathLengthOptimizationObjective', \
+        'max_min_clearance': 'MaximizeMinClearanceObjective', \
+        'mechanical_work': 'MechanicalWorkOptimizationObjective'}
     objective = objectives[problem['objective']]
     obj = eval('ob.%s(space_info)' % objective)
     cost = ob.Cost(float(problem['objective.threshold']))
@@ -325,21 +320,23 @@ def solve(problem):
                 simple_path = ompl_setup.getSolutionPath()
                 simplifyValid = simple_path.check()
                 if simplifyValid:
-                    path = simple_path;
+                    path = simple_path
                 else:
                     OMPL_ERROR("Simplified path was invalid.")
             else:
                 OMPL_ERROR("Invalid solution path.")
         else:
-            path = ompl_setup.getSolutionPath().asGeometric();
+            path = ompl_setup.getSolutionPath().asGeometric()
             OMPL_INFORM("Path simplification skipped due to non rigid body.")
 
         # Interpolate path
-        ns = int(100.0 * float(path.length()) / float(ompl_setup.getStateSpace().getMaximumExtent()))
+        ns = int(100.0 * float(path.length()) / \
+            float(ompl_setup.getStateSpace().getMaximumExtent()))
         if problem["isGeometric"] and len(path.getStates()) < ns:
             path.interpolate(ns)
             if len(path.getStates()) != ns:
-                OMPL_WARN("Interpolation produced " + str(len(path.getStates())) + " states instead of " + str(ns) + " states.")
+                OMPL_WARN("Interpolation produced " + str(len(path.getStates())) + \
+                    " states instead of " + str(ns) + " states.")
 
         solution = format_solution(path, True)
     else:
@@ -357,13 +354,13 @@ def solve(problem):
         coords = []
         state = pd.getVertex(i).getState()
 
-        if type(state) == ob.CompoundStateInternal:
+        if isinstance(state) == ob.CompoundStateInternal:
             state = state[0]
 
         coords.append(state.getX())
         coords.append(state.getY())
 
-        if (problem["is3D"] == True):
+        if problem["is3D"]:
             coords.append(state.getZ())
         else:
             coords.append(0)
@@ -405,8 +402,8 @@ def benchmark(name, session_id, cfg_loc, db_filename, problem_name, robot_loc, e
     os.chmod(db_filepath, 0o0664)
 
     if problem_name != "custom":
-        robot_file = join(ompl_sessions_dir, session_id, basename(robot_loc));
-        env_file = join(ompl_sessions_dir, session_id, basename(env_loc));
+        robot_file = join(ompl_sessions_dir, session_id, basename(robot_loc))
+        env_file = join(ompl_sessions_dir, session_id, basename(env_loc))
         if not os.path.isfile(robot_file) and not os.path.isfile(env_file):
             # Copy over the needed mesh files to perform benchmarking, if they don't exist
             os.symlink(join(ompl_web_root, robot_loc), robot_file)
@@ -414,9 +411,9 @@ def benchmark(name, session_id, cfg_loc, db_filename, problem_name, robot_loc, e
 
     # Run the benchmark, produces .log file
     try:
-        output = subprocess.check_output("ompl_benchmark " + cfg_loc + ".cfg",
-            shell=True,
-            stderr=subprocess.STDOUT,
+        subprocess.check_output("ompl_benchmark " + cfg_loc + ".cfg", \
+            shell=True, \
+            stderr=subprocess.STDOUT, \
             env=dict(os.environ, PATH=preferences["ompl_benchmark_loc"] + ":" + os.environ["PATH"]))
 
         # Convert .log into database
@@ -427,13 +424,15 @@ def benchmark(name, session_id, cfg_loc, db_filename, problem_name, robot_loc, e
 
         # Open the planner arena page when benchmarking is done
         if preferences["show_results"] == "1":
-            url = "http://127.0.0.1:" + preferences["plannerarena_port"] + "/?user=" + session_id + "&job=" + db_filename
+            url = "http://127.0.0.1:" + preferences["plannerarena_port"] + "/?user=" + \
+                session_id + "&job=" + db_filename
             webbrowser.open(url)
     except subprocess.CalledProcessError as cp:
         print('returncode=', cp.returncode)
         print('cmd=', cp.cmd)
     except:
-        OMPL_ERROR("Unable to call 'ompl_benchmark'. Please ensure that it is in the PATH, or add it with: 'export PATH=~/omplapp/build/Release/bin:${PATH}'")
+        OMPL_ERROR("Unable to call 'ompl_benchmark'. Please ensure that it is in the PATH, " \
+            "or add it with: 'export PATH=~/omplapp/build/Release/bin:${PATH}'")
 
 
 
@@ -466,7 +465,7 @@ def create_session():
     """
     Creates a session folder and returns its name
     """
-    if not os.path.isdir("/tmp/omplweb_sessions"):
+    if not os.path.isdir("/tmp/omplweb_sessions") and not os.path.exists(ompl_sessions_dir):
         # Session folders reside in /tmp, but symlinked into static/sessions
         os.makedirs("/tmp/omplweb_sessions")
         os.symlink("/tmp/omplweb_sessions", ompl_sessions_dir)
@@ -501,7 +500,7 @@ def send_problems():
         if filename.endswith(".cfg"):
             three_d.append(filename)
 
-    return json.dumps({"2D" : two_d, "3D" : three_d})
+    return json.dumps({"2D" : sorted(two_d), "3D" : sorted(three_d)})
 
 
 @app.route('/planners')
@@ -510,7 +509,7 @@ def planners():
     planners = {}
     planners['geometric'] = og.planners.plannerMap
     planners['control'] = oc.planners.plannerMap
-    return json.dumps(planners)
+    return json.dumps(planners, sort_keys=True)
 
 @app.route('/offset', methods=["POST"])
 def find_offset():
@@ -528,11 +527,12 @@ def get_robot_types():
 
     robot_types = {}
     for c in dir(oa):
-        if eval('isclass(oa.%s) and issubclass(oa.%s, (oa.AppBaseGeometric,oa.AppBaseControl)) and issubclass(oa.%s, oa.RenderGeometry)' % (c,c,c)):
+        if eval('isclass(oa.%s) and issubclass(oa.%s, (oa.AppBaseGeometric,oa.AppBaseControl)) ' \
+            'and issubclass(oa.%s, oa.RenderGeometry)' % (c, c, c)):
             name = eval('oa.%s().getName()' % c)
             apptype = eval('oa.%s().getAppType()' % c)
             robot_types[str(c)] = {"name" : str(name), "apptype" : str(apptype)}
-    return json.dumps(robot_types)
+    return json.dumps(robot_types, sort_keys=True)
 
 @app.route("/request_problem", methods=['POST'])
 def request_problem():
@@ -547,18 +547,16 @@ def request_problem():
     cfg_file_loc = join(problem_files, dimension, cfg_filename)
     cfg_data = parse_cfg(cfg_file_loc)
 
-    if (sys.version_info > (3, 0)):
-        config = ConfigParser.ConfigParser(strict = False)
+    if sys.version_info > (3, 0):
+        config = ConfigParser.ConfigParser(strict=False)
     else:
         config = ConfigParser.ConfigParser()
 
-    cfg_file = open(cfg_file_loc, 'r')
-    config.readfp(cfg_file)
+    config.read([cfg_file_loc])
 
     cfg_data['robot_loc'] = join("static/problem_files", dimension, config.get("problem", "robot"))
     cfg_data['env_loc'] = join("static/problem_files", dimension, config.get("problem", "world"))
 
-    cfg_file.close()
     return json.dumps(cfg_data)
 
 
@@ -579,10 +577,9 @@ def upload():
         solve_task = solve_multiple.delay(runs, problem)
         OMPL_DEBUG("Started solving multiple runs with task id: " + solve_task.task_id)
         return str(solve_task.task_id)
-    else:
-        solve_task = solve.delay(problem)
-        OMPL_DEBUG("Started solving task with id: " + solve_task.task_id)
-        return str(solve_task.task_id)
+    solve_task = solve.delay(problem)
+    OMPL_DEBUG("Started solving task with id: " + solve_task.task_id)
+    return str(solve_task.task_id)
 
 @app.route('/poll/<task_id>', methods=['POST'])
 def poll(task_id):
@@ -595,8 +592,7 @@ def poll(task_id):
 
     if result.ready():
         return json.dumps(result.get()), 200
-    else :
-        return "Result for task id: " + task_id + " isn't ready yet.", 202
+    return "Result for task id: " + task_id + " isn't ready yet.", 202
 
 @app.route("/upload_models", methods=['POST'])
 def upload_models():
@@ -630,7 +626,8 @@ def upload_models():
         else:
             return "Error: Wrong file format. Robot and environment files must be .dae"
     else:
-        return "Error: Didn't upload any files! Please choose both a robot and environment file in the .dae format."
+        return "Error: Didn't upload any files! Please choose both a robot and environment file" \
+            " in the .dae format."
 
     return json.dumps(file_locs)
 
@@ -655,7 +652,7 @@ def init_benchmark():
 
     db_filename = basename(db_filepath)
 
-    result = benchmark.delay(cfg_name, session_id, cfg_loc, db_filename, problem_name, env_loc, robot_loc)
+    benchmark.delay(cfg_name, session_id, cfg_loc, db_filename, problem_name, env_loc, robot_loc)
 
     return db_filename
 
@@ -673,5 +670,3 @@ if __name__ == "__main__":
 background jobs, but this server is not running. Exiting...""" % broker)
         sys.exit(-1)
     app.run()
-
-

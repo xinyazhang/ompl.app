@@ -1,12 +1,12 @@
 /*********************************************************************
-* Rice University Software Distribution License
-*
-* Copyright (c) 2010, Rice University
-* All Rights Reserved.
-*
-* For a full description see the file named LICENSE.
-*
-*********************************************************************/
+ * Rice University Software Distribution License
+ *
+ * Copyright (c) 2010, Rice University
+ * All Rights Reserved.
+ *
+ * For a full description see the file named LICENSE.
+ *
+ *********************************************************************/
 
 /* Author: Ioan Sucan */
 
@@ -23,8 +23,8 @@ int main()
     // load the robot and the environment
     std::string robot_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/cubicles_robot.dae";
     std::string env_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/cubicles_env.dae";
-    setup.setRobotMesh(robot_fname.c_str());
-    setup.setEnvironmentMesh(env_fname.c_str());
+    setup.setRobotMesh(robot_fname);
+    setup.setEnvironmentMesh(env_fname);
 
     // define start state
     base::ScopedState<base::SE3StateSpace> start(setup.getSpaceInformation());

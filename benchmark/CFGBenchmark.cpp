@@ -78,6 +78,7 @@
 #include <ompl/base/samplers/GaussianValidStateSampler.h>
 #include <ompl/base/samplers/ObstacleBasedValidStateSampler.h>
 #include <ompl/base/samplers/MaximizeClearanceValidStateSampler.h>
+#include <ompl/base/samplers/BridgeTestValidStateSampler.h>
 
 #include <fstream>
 
@@ -206,6 +207,8 @@ ompl::base::ValidStateSamplerPtr CFGBenchmark::allocValidStateSampler(const ompl
         vss = std::make_shared<ompl::base::ObstacleBasedValidStateSampler>(si);
     else if (type == "max_clearance")
         vss = std::make_shared<ompl::base::MaximizeClearanceValidStateSampler>(si);
+    else if (type == "bridge_test")
+        vss = std::make_shared<ompl::base::BridgeTestValidStateSampler>(si);
     else
         std::cerr << "Unknown sampler type: " << type << std::endl;
     if (vss)
@@ -234,9 +237,9 @@ ompl::base::OptimizationObjectivePtr CFGBenchmark::getOptimizationObjective(cons
         std::string threshold = bo_.declared_options_["problem.objective.threshold"];
         try
         {
-            opt->setCostThreshold(ompl::base::Cost(boost::lexical_cast<double>(threshold)));
+            opt->setCostThreshold(ompl::base::Cost(std::stod(threshold)));
         }
-        catch(boost::bad_lexical_cast &)
+        catch(std::invalid_argument &)
         {
             OMPL_WARN("Unable to parse optimization threshold: %s", threshold.c_str());
         }
@@ -301,9 +304,9 @@ void CFGBenchmark::preSwitchEvent(const ompl::base::PlannerPtr &planner)
         std::string threshold = activeParams_["objective.threshold"];
         try
         {
-            opt->setCostThreshold(ompl::base::Cost(boost::lexical_cast<double>(threshold)));
+            opt->setCostThreshold(ompl::base::Cost(std::stod(threshold)));
         }
-        catch(boost::bad_lexical_cast &)
+        catch(std::invalid_argument &)
         {
             OMPL_WARN("Unable to parse optimization threshold: %s", threshold.c_str());
         }
@@ -320,19 +323,19 @@ void CFGBenchmark::saveAllPaths(const ompl::base::PlannerPtr &planner, ompl::too
     {
         const ompl::tools::Benchmark::Status& status = benchmark_->getStatus();
         std::string fname = benchmark_->getExperimentName() + std::string("_")
-            + status.activePlanner + std::string("_") + boost::lexical_cast<std::string>(status.activeRun)
+            + status.activePlanner + std::string("_") + std::to_string(status.activeRun)
             + std::string(".path");
         std::ofstream pathfile(fname.c_str());
         ompl::base::PathPtr path = pdef->getSolutionPath();
-        ompl::geometric::PathGeometric* geoPath = dynamic_cast<ompl::geometric::PathGeometric*>(path.get());
-        if (geoPath)
+        auto* geoPath = dynamic_cast<ompl::geometric::PathGeometric*>(path.get());
+        if (geoPath != nullptr)
         {
             geoPath->interpolate();
             geoPath->printAsMatrix(pathfile);
         }
         else {
-            ompl::control::PathControl* controlPath = dynamic_cast<ompl::control::PathControl*>(path.get());
-            if (controlPath)
+            auto* controlPath = dynamic_cast<ompl::control::PathControl*>(path.get());
+            if (controlPath != nullptr)
             {
                 controlPath->interpolate();
                 controlPath->printAsMatrix(pathfile);
@@ -360,19 +363,19 @@ void CFGBenchmark::saveBestPath(const ompl::base::PlannerPtr &planner, ompl::too
     if (status.activeRun == benchmark_->getRecordedExperimentData().runCount - 1 && bestPath_)
     {
         std::string fname = benchmark_->getExperimentName() + std::string("_")
-                          + status.activePlanner + std::string("_") + boost::lexical_cast<std::string>(bestPathIndex_)
+                          + status.activePlanner + std::string("_") + std::to_string(bestPathIndex_)
                           + std::string(".path");
         std::ofstream pathfile(fname.c_str());
 
-        ompl::geometric::PathGeometric* geoPath = dynamic_cast<ompl::geometric::PathGeometric*>(bestPath_.get());
-        if (geoPath)
+        auto* geoPath = dynamic_cast<ompl::geometric::PathGeometric*>(bestPath_.get());
+        if (geoPath != nullptr)
         {
             geoPath->interpolate();
             geoPath->printAsMatrix(pathfile);
         }
         else {
-            ompl::control::PathControl* controlPath = dynamic_cast<ompl::control::PathControl*>(bestPath_.get());
-            if (controlPath)
+            auto* controlPath = dynamic_cast<ompl::control::PathControl*>(bestPath_.get());
+            if (controlPath != nullptr)
             {
                 controlPath->interpolate();
                 controlPath->printAsMatrix(pathfile);
@@ -401,11 +404,11 @@ void CFGBenchmark::runBenchmark()
 
     try
     {
-        tl = boost::lexical_cast<double>(bo_.declared_options_["benchmark.time_limit"]);
-        ml = boost::lexical_cast<double>(bo_.declared_options_["benchmark.mem_limit"]);
-        rc = boost::lexical_cast<unsigned int>(bo_.declared_options_["benchmark.run_count"]);
+        tl = std::stod(bo_.declared_options_["benchmark.time_limit"]);
+        ml = std::stod(bo_.declared_options_["benchmark.mem_limit"]);
+        rc = std::stoul(bo_.declared_options_["benchmark.run_count"]);
     }
-    catch(boost::bad_lexical_cast &)
+    catch(std::invalid_argument &)
     {
         std::cerr << "Unable to parse benchmark parameters" << std::endl;
         return;

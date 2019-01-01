@@ -1,4 +1,4 @@
-# Installation
+# Installation {#installation}
 
 \htmlonly
 <div class="panel panel-default">
@@ -9,7 +9,7 @@
       <li role="presentation" class="active"><a href="#ubuntu" aria-controls="ubuntu" role="tab" data-toggle="pill">Ubuntu</a></li>
       <li role="presentation"><a href="#fedora" aria-controls="fedora" role="tab" data-toggle="pill">Fedora</a></li>
       <li role="presentation"><a href="#linux" aria-controls="linux" role="tab" data-toggle="pill">Linux (generic)</a></li>
-      <li role="presentation"><a href="#osx" aria-controls="osx" role="tab" data-toggle="pill">OS X</a></li>
+      <li role="presentation"><a href="#osx" aria-controls="osx" role="tab" data-toggle="pill">macOS</a></li>
       <li role="presentation"><a href="#windows" aria-controls="windows" role="tab" data-toggle="pill">MS Windows</a></li>
     </ul>
   </div>
@@ -34,7 +34,7 @@
            <li><code>./install-ompl-ubuntu.sh --python</code> will install OMPL with Python bindings</li>
            <li><code>./install-ompl-ubuntu.sh --app</code> will install OMPL.app with Python bindings</li>
          </ul>
-         The script downloads and installs OMPL and all dependencies via <code>apt-get</code> &amp; <code>pip</code> and from source. It will ask for your password to install things. The script has been tested on vanilla installs of Ubuntu 14.04 (Trusty), 15.10 (Wily), and 16.04 (Xenial).
+         The script downloads and installs OMPL and all dependencies via <code>apt-get</code> &amp; <code>pip</code> and from source. It will ask for your password to install things. The script has been tested on vanilla installs of Ubuntu 16.04 (Xenial) and higher.
       </div>
       <div role="tabpanel" class="tab-pane" id="ubuntubinary">
         Simply type:
@@ -64,8 +64,8 @@ sudo apt-get install ros-`rosversion -d`-ompl</pre>
   <!-- Linux (generic) -->
   <div role="tabpanel" class="tab-pane" id="linux">
     <h2>Linux (generic)</h2>
-    <p>OMPL requires <a href="http://www.boost.org">Boost</a> (version 1.54 or higher) and <a href="http://www.cmake.org">CMake</a> (version 2.8.7 or higher). Some additional features are available if <a href="http://eigen.tuxfamily.org/index.php?title=Main_Page">Eigen 3</a> or <a href="http://www.ode.org">ODE</a> are installed.
-    OMPL.app requires in addition <a href="http://www.assimp.org">Assimp</a>, <a href="http://freeglut.sourceforge.net">Open GL libraries and header files</a>, <a href="https://github.com/danfis/libccd">libccd</a> (version 2.0.0 or higher), and <a href="https://github.com/flexible-collision-library/fcl">FCL</a> (version 0.4.0 or higher). To be able to generate python bindings you need to install the <a href="http://www.python.org">Python</a> library and header files and <a href="installPyPlusPlus.html">Py++</a>. The OMPL.app GUI requires <a href="http://www.riverbankcomputing.co.uk/software/pyqt/download5">PyQt5</a> (including its OpenGL bindings) and <a href="http://pyopengl.sourceforge.net">PyOpenGL</a>. Finally, you need a C++11 compiler (g++-5 or newer).</p>
+    <p>OMPL requires <a href="http://www.boost.org">Boost</a> (version 1.58 or higher), <a href="http://www.cmake.org">CMake</a> (version 3.5 or higher), and <a href="http://eigen.tuxfamily.org">Eigen</a> (version 3.3 or higher). Some additional features are available if <a href="http://www.ode.org">ODE</a> is installed.
+    OMPL.app requires in addition <a href="http://www.assimp.org">Assimp</a>, <a href="http://freeglut.sourceforge.net">Open GL libraries and header files</a>, <a href="https://github.com/danfis/libccd">libccd</a> (version 2.0.0 or higher), and <a href="https://github.com/flexible-collision-library/fcl">FCL</a> (version 0.5.0 or higher). To be able to generate python bindings you need to install the <a href="http://www.python.org">Python</a> library and header files and <a href="installPyPlusPlus.html">Py++</a>. The OMPL.app GUI requires <a href="http://www.riverbankcomputing.co.uk/software/pyqt/download5">PyQt5</a> (including its OpenGL bindings) and <a href="http://pyopengl.sourceforge.net">PyOpenGL</a>. Finally, you need a C++14 compiler (g++-5 or newer).</p>
     <p>Once the dependencies are installed, OMPL.app can then be compiled like so:</p>
     <ul>
     <li>Create a build directory and run cmake: <pre class="fragment">cd omplapp
@@ -80,9 +80,9 @@ cmake ../..</pre></li>
     <p>The build system includes a <a href="buildOptions.html">number of options</a> that you can enable or disable.</p>
   </div>
 
-  <!-- OS X -->
+  <!-- macOS -->
   <div role="tabpanel" class="tab-pane" id="osx">
-    <h2>OS X</h2>
+    <h2>macOS</h2>
     <ul class="nav nav-tabs" role="tablist">
       <li role="presentation" class="active"><a href="#osxmacports" aria-controls="osxmacports" role="tab" data-toggle="tab">MacPorts</a></li>
       <li role="presentation"><a href="#osxhomebrew" aria-controls="osxhomebrew" role="tab" data-toggle="tab">Homebrew</a></li>
@@ -91,11 +91,18 @@ cmake ../..</pre></li>
       <div role="tabpanel" class="tab-pane active" id="osxmacports">
         Install <a href="http://www.macports.org">MacPorts</a> and type:<pre class="fragment">sudo port sync \; install ompl +app</pre>
         (Omit the <code>+app</code> part if you do not need OMPL.app.)
+        If you want to build OMPL from source instead, you can install just the OMPL dependencies like so:
+        <pre class="fragment">sudo port install `port -q info --depends ompl | sed 's/,//g'`</pre>
+        or like this if you want to build OMPL.app:
+        <pre class="fragment">sudo port install `port -q info --depends ompl +app | sed 's/,//g'`</pre>
       </div>
       <div role="tabpanel" class="tab-pane" id="osxhomebrew">
         Install <a href="http://brew.sh">Homebrew</a> and type:
         <pre class="fragment">brew install ompl</pre>
-        Note that the <a href="http://braumeister.org/formula/ompl">Homebrew formula</a> does not include OMPL.app or Python bindings.
+        Note that the <a href="http://braumeister.org/formula/ompl">Homebrew formula</a> does not include OMPL.app or Python bindings. You could install all the dependencies for OMPL.app and the python bindings and build OMPL from source:
+        <pre class="fragment">brew install eigen castxml numpy boost-python3 pypy3 flann pyqt assimp fcl</pre>
+        Make sure to use Homebrew's python3 in that case by calling <code>cmake</code> like so:
+        <pre class="fragment">cmake -DPYTHON_EXEC=/usr/local/bin/python3 ...</pre>
       </div>
     </div>
   </div>
@@ -103,8 +110,7 @@ cmake ../..</pre></li>
   <!-- Windows -->
   <div role="tabpanel" class="tab-pane" id="windows">
     <h2>MS Windows</h2>
-    Installation on Windows is possible, but not supported at this time. Our configuration files for compiling <a href="https://bitbucket.org/ompl/omplapp/src/tip/.appveyor.yml">OMPL.app</a> or <a href="https://bitbucket.org/ompl/ompl/src/tip/.appveyor.yml">OMPL</a> using AppVeyor's Windows Continuous Integration servers might serve as a useful starting point.
+        It is recommended to use <a href="https://vcpkg.readthedocs.io/en/latest/">vcpkg</a>, a Microsoft-supported package manager for open source software. Use our Appveyor configuration files for compiling <a href="https://bitbucket.org/ompl/omplapp/src/tip/.appveyor.yml">OMPL.app</a> or <a href="https://bitbucket.org/ompl/ompl/src/tip/.appveyor.yml">OMPL</a> for a list of packages to install and build instructions.
   </div>
 </div>
 \endhtmlonly
-

@@ -14,7 +14,7 @@
 #include <boost/math/constants/constants.hpp>
 
 ompl::app::KinematicCarPlanning::KinematicCarPlanning()
-    : AppBase<CONTROL>(constructControlSpace(), Motion_2D), timeStep_(1e-2), lengthInv_(1.), odeSolver(std::make_shared<control::ODEBasicSolver<>>(si_, [this](const control::ODESolver::StateType& q, const control::Control *ctrl, control::ODESolver::StateType& qdot)
+    : AppBase<AppType::CONTROL>(constructControlSpace(), Motion_2D), odeSolver(std::make_shared<control::ODEBasicSolver<>>(si_, [this](const control::ODESolver::StateType& q, const control::Control *ctrl, control::ODESolver::StateType& qdot)
     {
         ode(q, ctrl, qdot);
     }))
@@ -30,7 +30,7 @@ ompl::app::KinematicCarPlanning::KinematicCarPlanning()
 }
 
 ompl::app::KinematicCarPlanning::KinematicCarPlanning(const control::ControlSpacePtr &controlSpace)
-    : AppBase<CONTROL>(controlSpace, Motion_2D), timeStep_(1e-2), lengthInv_(1.), odeSolver(std::make_shared<control::ODEBasicSolver<>>(si_, [this](const control::ODESolver::StateType& q, const control::Control *ctrl, control::ODESolver::StateType& qdot)
+    : AppBase<AppType::CONTROL>(controlSpace, Motion_2D), odeSolver(std::make_shared<control::ODEBasicSolver<>>(si_, [this](const control::ODESolver::StateType& q, const control::Control *ctrl, control::ODESolver::StateType& qdot)
     {
         ode(q, ctrl, qdot);
     }))
@@ -82,7 +82,7 @@ void ompl::app::KinematicCarPlanning::postPropagate(const base::State* /*state*/
     // Normalize orientation value between 0 and 2*pi
     const base::SO2StateSpace* SO2 = getStateSpace()->as<base::SE2StateSpace>()
         ->as<base::SO2StateSpace>(1);
-    base::SO2StateSpace::StateType* so2 = result->as<base::SE2StateSpace::StateType>()
+    auto* so2 = result->as<base::SE2StateSpace::StateType>()
         ->as<base::SO2StateSpace::StateType>(1);
     SO2->enforceBounds(so2);
 }

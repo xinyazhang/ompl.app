@@ -18,13 +18,8 @@
 #include <ompl/base/SpaceInformation.h>
 #include <ompl/base/spaces/RealVectorBounds.h>
 #include <memory>
-#if OMPL_HAS_ASSIMP3
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
-#else
-#include <assimp/aiScene.h>
-#include <assimp/assimp.hpp>
-#endif
 #include <string>
 #include <vector>
 
@@ -109,7 +104,7 @@ namespace ompl
             /** \brief Change the type of collision checking for the rigid body */
             virtual void setStateValidityCheckerType (CollisionChecker ctype);
 
-            /** \brief Allocate default state validity checker using PQP. */
+            /** \brief Allocate default state validity checker using FCL. */
             const base::StateValidityCheckerPtr& allocStateValidityChecker(const base::SpaceInformationPtr &si, const GeometricStateExtractor &se, bool selfCollision);
 
             const GeometrySpecification& getGeometrySpecification() const;

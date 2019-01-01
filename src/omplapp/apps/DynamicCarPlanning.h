@@ -39,12 +39,11 @@ namespace ompl
             and rear axle of the car. Both \f$m\f$ and \f$L\f$ are set to 1 by
             default.
         */
-        class DynamicCarPlanning : public AppBase<CONTROL>
+        class DynamicCarPlanning : public AppBase<AppType::CONTROL>
         {
         public:
             DynamicCarPlanning()
-                : AppBase<CONTROL>(constructControlSpace(), Motion_2D),
-                  timeStep_(1e-2), lengthInv_(1.), mass_(1.),
+                : AppBase<AppType::CONTROL>(constructControlSpace(), Motion_2D),
                   odeSolver(std::make_shared<control::ODEBasicSolver<>>(si_, [this](const control::ODESolver::StateType& q, const control::Control *ctrl, control::ODESolver::StateType& qdot)
                       {
                           ode(q, ctrl, qdot);
@@ -112,7 +111,7 @@ namespace ompl
 
             virtual void ode(const control::ODESolver::StateType& q, const control::Control *ctrl, control::ODESolver::StateType& qdot);
 
-            virtual void postPropagate(const base::State* state, const control::Control* control, const double duration, base::State* result);
+            virtual void postPropagate(const base::State* state, const control::Control* control, double duration, base::State* result);
 
             static control::ControlSpacePtr constructControlSpace()
             {
@@ -127,9 +126,9 @@ namespace ompl
                 return stateSpace;
             }
 
-            double timeStep_;
-            double lengthInv_;
-            double mass_;
+            double timeStep_{1e-2};
+            double lengthInv_{1.};
+            double mass_{1.};
             control::ODESolverPtr odeSolver;
         };
 
