@@ -23,7 +23,7 @@ namespace ompl
     namespace app
     {
 
-        enum AppType
+        enum class AppType
             { GEOMETRIC, CONTROL };
 
         template<AppType T>
