@@ -24,6 +24,7 @@
 #include <ompl/base/samplers/GaussianValidStateSampler.h>
 #include <ompl/base/samplers/ObstacleBasedValidStateSampler.h>
 #include <ompl/base/samplers/MaximizeClearanceValidStateSampler.h>
+#include <ompl/base/samplers/ProxyValidStateSampler.h>
 
 #include <fstream>
 
@@ -36,16 +37,15 @@ void set_planner(app::SE3RigidBodyPlanning& setup)
 	setup.setPlanner(std::make_shared<Planner>(setup.getSpaceInformation()));
 }
 
-void load_inj(geometric::ReRRT* rerrt, const char* saminjfn)
+size_t append_samples_from_file(const char* saminjfn, std::vector<std::vector<double>>& samples)
 {
 	if (!saminjfn)
-		return;
+		return 0;
 	std::ifstream fin(saminjfn);
 	if (!fin.is_open())
-		throw std::string("Fail to open file ") + saminjfn + std::string(" for sample injection");
+		throw std::runtime_error(std::string("Fail to open file ") + saminjfn + " for sample injection");
 	size_t start_sample, nrow, ncol;
 	fin >> start_sample >> nrow >> ncol;
-	std::vector<std::vector<double>> samples;
 	for (size_t i = 0; i < nrow; i++) {
 		std::vector<double> line;
 		for (size_t j = 0; j < ncol; j++) {
@@ -55,7 +55,14 @@ void load_inj(geometric::ReRRT* rerrt, const char* saminjfn)
 		}
 		samples.emplace_back(std::move(line));
 	}
-	rerrt->setStateInjection(start_sample, std::move(samples));
+	return start_sample;
+}
+
+void load_inj(geometric::ReRRT* rerrt, const char* saminjfn)
+{
+	std::vector<std::vector<double>> samples;
+	size_t begin = append_samples_from_file(saminjfn, samples);
+	rerrt->setStateInjection(begin, std::move(samples));
 }
 
 void load_inj(geometric::RRTForest* rrt_forest, const char* saminjfn)
@@ -129,7 +136,7 @@ void config_planner(app::SE3RigidBodyPlanning& setup, int planner_id, int sample
 		case 15:
 			{
 				auto rerrt = std::make_shared<geometric::ReRRT>(setup.getSpaceInformation());
-				load_inj(rerrt.get(), saminjfn);
+				// load_inj(rerrt.get(), saminjfn);
 				rerrt->setKNearest(K);
 				setup.setPlanner(rerrt);
 			}
@@ -174,6 +181,23 @@ void config_planner(app::SE3RigidBodyPlanning& setup, int planner_id, int sample
 					vss->setNrImproveAttempts(5);
 					return vss;
 					});
+			break;
+		case 4:
+			if (saminjfn == nullptr || std::string(saminjfn) == "") {
+				throw std::runtime_error("ProxyValidStateSampler requires sample injection file");
+			} else {
+				std::string fn(saminjfn);
+				setup.getSpaceInformation()->setValidStateSamplerAllocator(
+						[fn](const base::SpaceInformation *si) -> base::ValidStateSamplerPtr
+						{
+						auto us = std::make_shared<base::UniformValidStateSampler>(si);
+						auto ps = std::make_shared<base::ProxyValidStateSampler>(si, us);
+						std::vector<std::vector<double>> samples;
+						size_t begin = append_samples_from_file(fn.c_str(), samples);
+						ps->cacheState(begin, samples);
+						return ps;
+						});
+			}
 			break;
 		default:
 			break;
@@ -226,5 +250,6 @@ SAMPLER:
  1: GaussianValidStateSampler
  2: ObstacleBasedValidStateSampler
  3: MaximizeClearanceValidStateSampler
+ 4: ProxyValidStateSampler
 )xxx";
 }
