@@ -24,7 +24,8 @@
 #include <ompl/base/samplers/GaussianValidStateSampler.h>
 #include <ompl/base/samplers/ObstacleBasedValidStateSampler.h>
 #include <ompl/base/samplers/MaximizeClearanceValidStateSampler.h>
-#include <ompl/base/samplers/ProxyValidStateSampler.h>
+#include <ompl/base/ProxyStateSampler.h>
+// #include <ompl/base/samplers/ProxyValidStateSampler.h>
 
 #include <fstream>
 
@@ -186,10 +187,13 @@ void config_planner(app::SE3RigidBodyPlanning& setup, int planner_id, int sample
 			if (saminjfn == nullptr || std::string(saminjfn) == "") {
 				throw std::runtime_error("ProxyValidStateSampler requires sample injection file");
 			} else {
+				// Config Valid State Sampler
 				std::string fn(saminjfn);
+#if 0
 				setup.getSpaceInformation()->setValidStateSamplerAllocator(
 						[fn](const base::SpaceInformation *si) -> base::ValidStateSamplerPtr
 						{
+						std::cerr << "Creating ProxyValidStateSampler\n";
 						auto us = std::make_shared<base::UniformValidStateSampler>(si);
 						auto ps = std::make_shared<base::ProxyValidStateSampler>(si, us);
 						std::vector<std::vector<double>> samples;
@@ -197,6 +201,20 @@ void config_planner(app::SE3RigidBodyPlanning& setup, int planner_id, int sample
 						ps->cacheState(begin, samples);
 						return ps;
 						});
+#endif
+				// Config Normal State Sampler
+				using namespace ompl::base;
+				StateSpacePtr ssp = setup.getStateSpace();
+				ssp->setStateSamplerAllocator(
+					[fn](const StateSpace *ss) -> StateSamplerPtr
+					{
+						auto us = ss->allocDefaultStateSampler(); // do NOT call allocStateSampler
+						auto ps = std::make_shared<base::ProxyStateSampler>(ss, us);
+						std::vector<std::vector<double>> samples;
+						size_t begin = append_samples_from_file(fn.c_str(), samples);
+						ps->cacheState(begin, samples);
+						return ps;
+					});
 			}
 			break;
 		default:
