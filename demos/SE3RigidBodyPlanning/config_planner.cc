@@ -73,8 +73,8 @@ void load_inj(geometric::RRTForest* rrt_forest, const char* saminjfn)
 	std::ifstream fin(saminjfn);
 	if (!fin.is_open())
 		throw std::string("Fail to open file ") + saminjfn + std::string(" for sample injection");
-	size_t nsample, scalar_per_sample;
-	fin >> nsample >> scalar_per_sample;
+	size_t injpos, nsample, scalar_per_sample;
+	fin >> injpos >> nsample >> scalar_per_sample;
 	Eigen::MatrixXd samples(scalar_per_sample, nsample);
 	for (size_t i = 0; i < nsample; i++) {
 		for (size_t j = 0; j < scalar_per_sample; j++) {
