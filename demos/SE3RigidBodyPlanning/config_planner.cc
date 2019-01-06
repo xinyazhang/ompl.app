@@ -38,7 +38,7 @@ void set_planner(app::SE3RigidBodyPlanning& setup)
 	setup.setPlanner(std::make_shared<Planner>(setup.getSpaceInformation()));
 }
 
-size_t append_samples_from_file(const char* saminjfn, std::vector<std::vector<double>>& samples)
+ssize_t append_samples_from_file(const char* saminjfn, std::vector<std::vector<double>>& samples)
 {
 	if (!saminjfn)
 		return 0;
@@ -62,7 +62,7 @@ size_t append_samples_from_file(const char* saminjfn, std::vector<std::vector<do
 void load_inj(geometric::ReRRT* rerrt, const char* saminjfn)
 {
 	std::vector<std::vector<double>> samples;
-	size_t begin = append_samples_from_file(saminjfn, samples);
+	ssize_t begin = append_samples_from_file(saminjfn, samples);
 	rerrt->setStateInjection(begin, std::move(samples));
 }
 
@@ -211,7 +211,7 @@ void config_planner(app::SE3RigidBodyPlanning& setup, int planner_id, int sample
 						auto us = ss->allocDefaultStateSampler(); // do NOT call allocStateSampler
 						auto ps = std::make_shared<base::ProxyStateSampler>(ss, us);
 						std::vector<std::vector<double>> samples;
-						size_t begin = append_samples_from_file(fn.c_str(), samples);
+						ssize_t begin = append_samples_from_file(fn.c_str(), samples);
 						ps->cacheState(begin, samples);
 						return ps;
 					});
