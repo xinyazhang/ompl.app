@@ -137,7 +137,8 @@ void config_planner(app::SE3RigidBodyPlanning& setup, int planner_id, int sample
 		case 15:
 			{
 				auto rerrt = std::make_shared<geometric::ReRRT>(setup.getSpaceInformation());
-				// load_inj(rerrt.get(), saminjfn);
+				if (sampler_id != 4)
+					load_inj(rerrt.get(), saminjfn);
 				rerrt->setKNearest(K);
 				setup.setPlanner(rerrt);
 			}
