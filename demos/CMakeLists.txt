@@ -42,6 +42,8 @@ if (OMPL_BUILD_DEMOS)
                      SE3RigidBodyPlanning/config_planner.cc)
     add_omplapp_demo(demo_Dual_g2 SE3RigidBodyPlanning/DualG2.cc
                      SE3RigidBodyPlanning/config_planner.cc)
+    add_omplapp_demo(demo_Dual_g4 SE3RigidBodyPlanning/DualG4.cc
+                     SE3RigidBodyPlanning/config_planner.cc)
     aux_source_directory(mtblender/ MTBLENDER_SRC)
     add_omplapp_demo(mtblender ${MTBLENDER_SRC})
 
