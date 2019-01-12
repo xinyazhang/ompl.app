@@ -60,13 +60,13 @@ int main(int argc, char* argv[])
 
 	std::string robot_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/knotted_ring.dt.tcp.obj";
 	std::string env_fname = std::string(OMPLAPP_RESOURCE_DIR) + "/3D/dual-g4.dt.tcp.obj";
-	constexpr double sx = 7.85;
-	constexpr double sy = 39.91;
+	constexpr double sx = 2.85;
+	constexpr double sy = 32.91;
 	constexpr double sz = -0.82;
 	constexpr double srx = 0.0;
 	constexpr double sry = 0.0;
 	constexpr double srz = 1.0;
-	constexpr double srt = 1.57079632679;
+	constexpr double srt = 3.14159265359;
 	constexpr double gx = -0.15;
 	constexpr double gy = -6.09;
 	constexpr double gz = -0.82;
