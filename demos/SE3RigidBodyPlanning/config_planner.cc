@@ -210,12 +210,17 @@ void config_planner(app::SE3RigidBodyPlanning& setup, int planner_id, int sample
 				using namespace ompl::base;
 				StateSpacePtr ssp = setup.getStateSpace();
 				ssp->setStateSamplerAllocator(
-					[fn](const StateSpace *ss) -> StateSamplerPtr
+					[fn, planner_id](const StateSpace *ss) -> StateSamplerPtr
 					{
 						auto us = ss->allocDefaultStateSampler(); // do NOT call allocStateSampler
 						auto ps = std::make_shared<base::ProxyStateSampler>(ss, us);
 						std::vector<std::vector<double>> samples;
 						ssize_t begin = append_samples_from_file(fn.c_str(), samples);
+						if (planner_id == 7) {
+							// PRM does not need
+							// repeating
+							begin = std::abs(begin);
+						}
 						ps->cacheState(begin, samples);
 						return ps;
 					});
