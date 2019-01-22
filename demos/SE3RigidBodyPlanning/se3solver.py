@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import argparse
 from six.moves import configparser
 import numpy as np
