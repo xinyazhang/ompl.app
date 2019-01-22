@@ -46,6 +46,10 @@ if (OMPL_BUILD_DEMOS)
                      SE3RigidBodyPlanning/config_planner.cc)
     aux_source_directory(mtblender/ MTBLENDER_SRC)
     add_omplapp_demo(mtblender ${MTBLENDER_SRC})
+    set(PYBIND11_PYTHON_VERSION 2.7)
+    find_package(pybind11 REQUIRED)
+    pybind11_add_module(pyse3ompl SE3RigidBodyPlanning/pyse3ompl.cc SE3RigidBodyPlanning/config_planner.cc)
+    target_link_libraries(pyse3ompl ${OMPLAPP_DEMO_LIBRARIES})
 
     # create executable for planning with OPENDE
     if (OPENDE_FOUND AND DRAWSTUFF_FOUND)

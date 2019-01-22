@@ -88,6 +88,9 @@ void load_inj(geometric::RRTForest* rrt_forest, const char* saminjfn)
 
 void config_planner(app::SE3RigidBodyPlanning& setup, int planner_id, int sampler_id, const char* saminjfn, int K)
 {
+	if (strlen(saminjfn) == 0) {
+		saminjfn = nullptr;
+	}
 	switch (planner_id) {
 		case 0:
 			set_planner<geometric::RRTConnect>(setup);

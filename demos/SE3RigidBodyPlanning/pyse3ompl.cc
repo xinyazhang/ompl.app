@@ -1,0 +1,193 @@
+#include <limits>
+#include <Eigen/Core>
+#include <pybind11/pybind11.h>
+#include <pybind11/eigen.h>
+#include <string>
+#include <omplapp/apps/SE3RigidBodyPlanning.h>
+#include <omplapp/config.h>
+#include "config_planner.h"
+#include <iostream>
+namespace py = pybind11;
+
+enum {
+	MODEL_PART_ENV = 0,
+	MODEL_PART_ROB = 1,
+	TOTAL_MODEL_PARTS
+};
+
+enum {
+	INIT_STATE = 0,
+	GOAL_STATE = 1,
+	TOTAL_STATES
+};
+
+class OmplDriver {
+	struct SE3State {
+		Eigen::Vector3d tr;
+		Eigen::Vector3d rot_axis;
+		double rot_angle;
+	};
+public:
+	OmplDriver()
+	{
+	}
+
+	~OmplDriver()
+	{
+	}
+
+	void setPlanner(int planner_id,
+			int valid_state_sampler_id, // WARNING: SOME PLANNERS ARE NOT BASED ON VALID STATE SAMPLER
+			std::string sample_injection_fn,
+			int rdt_k_nearest)
+	{
+		planner_id_ = planner_id;
+		vs_sampler_id_ = valid_state_sampler_id;
+		sample_inj_fn_ = sample_injection_fn;
+		rdt_k_nearest_ = rdt_k_nearest;
+	}
+
+	void setModelFile(int part_id, const std::string& fn)
+	{
+		if (part_id < 0 || part_id >= TOTAL_MODEL_PARTS) {
+			throw std::runtime_error("OmplDriver::setModelFile: invalid part_id "
+			                         + std::to_string(part_id));
+		}
+		model_files_[part_id] = fn;
+	}
+
+	void setState(int state_type,
+	              const Eigen::Vector3d& tr,
+	              const Eigen::Vector3d& rot_axis,
+	              double rot_angle)
+	{
+		if (state_type < 0 || state_type >= TOTAL_STATES) {
+			throw std::runtime_error("OmplDriver::setState: invalid state_type "
+			                         + std::to_string(state_type));
+		}
+		auto& m = problem_states_[state_type];
+		m.tr = tr;
+		m.rot_axis = rot_axis;
+		m.rot_angle = rot_angle;
+	}
+
+	void setBB(const Eigen::Vector3d& mins, 
+	           const Eigen::Vector3d& maxs)
+	{
+		mins_ = mins;
+		maxs_ = maxs;
+	}
+
+	// Collision detection resolution
+	void setCDRes(double cdres) { cdres_ = cdres; }
+
+	void solve(double days,
+	           const std::string& output_fn)
+	{
+		using namespace ompl;
+
+		ompl::app::SE3RigidBodyPlanning setup;
+		config_planner(setup,
+			       planner_id_,
+			       vs_sampler_id_,
+			       sample_inj_fn_.c_str(),
+			       rdt_k_nearest_);
+		setup.setRobotMesh(model_files_[MODEL_PART_ROB]);
+		setup.setEnvironmentMesh(model_files_[MODEL_PART_ENV]);
+
+		auto& ist = problem_states_[INIT_STATE];
+		base::ScopedState<base::SE3StateSpace> start(setup.getSpaceInformation());
+		start->setX(ist.tr(0));
+		start->setY(ist.tr(1));
+		start->setZ(ist.tr(2));
+		start->rotation().setAxisAngle(ist.rot_axis(0),
+					       ist.rot_axis(1),
+					       ist.rot_axis(2),
+					       ist.rot_angle);
+		auto& gst = problem_states_[GOAL_STATE];
+		base::ScopedState<base::SE3StateSpace> goal(start);
+		goal->setX(gst.tr(0));
+		goal->setY(gst.tr(1));
+		goal->setZ(gst.tr(2));
+		goal->rotation().setAxisAngle(gst.rot_axis(0),
+					      gst.rot_axis(1),
+					      gst.rot_axis(2),
+					      gst.rot_angle);
+		setup.setStartAndGoalStates(start, goal);
+		setup.getSpaceInformation()->setStateValidityCheckingResolution(cdres_);
+
+		auto gcss = setup.getGeometricComponentStateSpace()->as<base::SE3StateSpace>();
+		base::RealVectorBounds b = gcss->getBounds();
+		for (int i = 0; i < 3; i++) {
+			b.setLow(i, mins_(i));
+			b.setHigh(i, maxs_(i));
+		}
+		gcss->setBounds(b);
+		setup.setup();
+
+		std::cout << "Trying to solve "
+		          << model_files_[MODEL_PART_ROB]
+			  << " v.s. "
+			  << model_files_[MODEL_PART_ENV]
+			  << std::endl;
+		setup.print();
+		if (setup.solve(3600 * 24 * days)) {
+			std::cout.precision(17);
+			setup.getSolutionPath().printAsMatrix(std::cout);
+		}
+		if (!output_fn.empty()) {
+			base::PlannerData pdata(setup.getSpaceInformation());
+			setup.getPlanner()->getPlannerData(pdata);
+			std::ofstream fout(output_fn);
+			fout.precision(17);
+			printPlan(pdata, fout);
+		}
+		std::cout << "-----FINAL-----" << std::endl;
+	}
+private:
+	int planner_id_;
+	int vs_sampler_id_;
+	int rdt_k_nearest_;
+	std::string sample_inj_fn_;
+	std::string model_files_[TOTAL_MODEL_PARTS];
+	SE3State problem_states_[TOTAL_STATES];
+	Eigen::Vector3d mins_, maxs_;
+	double cdres_ = std::numeric_limits<double>::quiet_NaN();
+};
+
+PYBIND11_MODULE(pyse3ompl, m) {
+	m.attr("PLANNER_RRT_CONNECT") = py::int_(int(PLANNER_RRT_CONNECT));
+	m.attr("PLANNER_RRT"        ) = py::int_(int(PLANNER_RRT        ));
+	m.attr("PLANNER_BKPIECE1"   ) = py::int_(int(PLANNER_BKPIECE1   ));
+	m.attr("PLANNER_LBKPIECE1"  ) = py::int_(int(PLANNER_LBKPIECE1  ));
+	m.attr("PLANNER_KPIECE1"    ) = py::int_(int(PLANNER_KPIECE1    ));
+	m.attr("PLANNER_SBL"        ) = py::int_(int(PLANNER_SBL        ));
+	m.attr("PLANNER_EST"        ) = py::int_(int(PLANNER_EST        ));
+	m.attr("PLANNER_PRM"        ) = py::int_(int(PLANNER_PRM        ));
+	m.attr("PLANNER_BITstar"    ) = py::int_(int(PLANNER_BITstar    ));
+	m.attr("PLANNER_PDST"       ) = py::int_(int(PLANNER_PDST       ));
+	m.attr("PLANNER_TRRT"       ) = py::int_(int(PLANNER_TRRT       ));
+	m.attr("PLANNER_BiTRRT"     ) = py::int_(int(PLANNER_BiTRRT     ));
+	m.attr("PLANNER_LazyRRT"    ) = py::int_(int(PLANNER_LazyRRT    ));
+	m.attr("PLANNER_LazyLBTRRT" ) = py::int_(int(PLANNER_LazyLBTRRT ));
+	m.attr("PLANNER_SPARS"      ) = py::int_(int(PLANNER_SPARS      ));
+	m.attr("PLANNER_ReRRT"      ) = py::int_(int(PLANNER_ReRRT      ));
+	m.attr("VSTATE_SAMPLER_UNIFORM") = py::int_(0);
+	m.attr("VSTATE_SAMPLER_GAUSSIAN") = py::int_(1);
+	m.attr("VSTATE_SAMPLER_OBSTACLE") = py::int_(2);
+	m.attr("VSTATE_SAMPLER_MAXCLEARANCE") = py::int_(3);
+	m.attr("VSTATE_SAMPLER_PROXY") = py::int_(4);
+	m.attr("MODEL_PART_ENV") = py::int_(int(MODEL_PART_ENV));
+	m.attr("MODEL_PART_ROB") = py::int_(int(MODEL_PART_ROB));
+	m.attr("INIT_STATE") = py::int_(int(INIT_STATE));
+	m.attr("GOAL_STATE") = py::int_(int(GOAL_STATE));
+	py::class_<OmplDriver>(m, "OmplDriver")
+		.def(py::init<>())
+		.def("set_planner", &OmplDriver::setPlanner)
+		.def("set_model_file", &OmplDriver::setModelFile)
+		.def("set_bb", &OmplDriver::setBB)
+		.def("set_state", &OmplDriver::setState)
+		.def("set_cdres", &OmplDriver::setCDRes)
+		.def("solve", &OmplDriver::solve)
+		;
+}
