@@ -1,5 +1,8 @@
 #include <limits>
+#include <stdint.h>
+#include <tuple>
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
 #include <string>
@@ -7,6 +10,7 @@
 #include <omplapp/config.h>
 #include "config_planner.h"
 #include <iostream>
+#include <vector>
 namespace py = pybind11;
 
 enum {
@@ -28,6 +32,9 @@ class OmplDriver {
 		double rot_angle;
 	};
 public:
+	using GraphV = Eigen::MatrixXd;
+	using GraphE = Eigen::SparseMatrix<uint8_t>;
+
 	OmplDriver()
 	{
 	}
@@ -81,8 +88,10 @@ public:
 	// Collision detection resolution
 	void setCDRes(double cdres) { cdres_ = cdres; }
 
-	void solve(double days,
-	           const std::string& output_fn)
+	std::tuple<GraphV, GraphE>
+	solve(double days,
+	      const std::string& output_fn,
+	      bool return_ve = false)
 	{
 		using namespace ompl;
 
@@ -131,18 +140,48 @@ public:
 			  << model_files_[MODEL_PART_ENV]
 			  << std::endl;
 		setup.print();
+		if (!ex_graph_v_.empty()) {
+			auto planner = setup.getPlanner();
+			for (size_t i = 0; i < ex_graph_v_.size(); i++) {
+				planner->addGraph(ex_graph_v_[i], ex_graph_e_[i]);
+			}
+		}
 		if (setup.solve(3600 * 24 * days)) {
 			std::cout.precision(17);
 			setup.getSolutionPath().printAsMatrix(std::cout);
 		}
-		if (!output_fn.empty()) {
+		GraphV V;
+		GraphE E;
+		if (!output_fn.empty() or return_ve) {
 			base::PlannerData pdata(setup.getSpaceInformation());
 			setup.getPlanner()->getPlannerData(pdata);
-			std::ofstream fout(output_fn);
-			fout.precision(17);
-			printPlan(pdata, fout);
+			if (!output_fn.empty()) {
+				std::ofstream fout(output_fn);
+				fout.precision(17);
+				printPlan(pdata, fout);
+			}
+			if (return_ve) {
+				extractPlanVE(pdata, V, E);
+			}
 		}
 		std::cout << "-----FINAL-----" << std::endl;
+		return std::tie(V, E);
+	}
+
+	// NOTE: TRANSLATION + W-LAST QUATERNION
+	void substituteState(int state_type, const Eigen::VectorXd& state)
+	{
+		Eigen::Vector3d tr;
+		tr << state(0), state(1), state(2);
+		Eigen::Quaternion<double> quat(state(6), state(3), state(4), state(5));
+		Eigen::AngleAxis<double> aa(quat);
+		setState(state_type, tr, aa.axis(), aa.angle());
+	}
+
+	void addExistingGraph(GraphV V, GraphE E)
+	{
+		ex_graph_v_.emplace_back(std::move(V));
+		ex_graph_e_.emplace_back(std::move(E));
 	}
 private:
 	int planner_id_;
@@ -153,6 +192,9 @@ private:
 	SE3State problem_states_[TOTAL_STATES];
 	Eigen::Vector3d mins_, maxs_;
 	double cdres_ = std::numeric_limits<double>::quiet_NaN();
+
+	std::vector<GraphV> ex_graph_v_;
+	std::vector<GraphE> ex_graph_e_;
 };
 
 PYBIND11_MODULE(pyse3ompl, m) {
@@ -188,6 +230,12 @@ PYBIND11_MODULE(pyse3ompl, m) {
 		.def("set_bb", &OmplDriver::setBB)
 		.def("set_state", &OmplDriver::setState)
 		.def("set_cdres", &OmplDriver::setCDRes)
-		.def("solve", &OmplDriver::solve)
+		.def("solve", &OmplDriver::solve,
+		     py::arg("days"),
+		     py::arg("output_fn") = std::string(),
+		     py::arg("return_ve") = false
+		    )
+		.def("substitute_state", &OmplDriver::substituteState)
+		.def("add_existing_graph", &OmplDriver::addExistingGraph)
 		;
 }

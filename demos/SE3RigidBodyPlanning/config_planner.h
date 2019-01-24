@@ -1,12 +1,20 @@
 #ifndef DEOM_ALPHA_CONFIG_PLANNER_H
 #define DEOM_ALPHA_CONFIG_PLANNER_H
 
+#include <stdint.h>
+#include <Eigen/Core>
+#include <Eigen/SparseCore>
+#include <Eigen/Geometry>
 #include <omplapp/apps/SE3RigidBodyPlanning.h>
 #include <fstream>
 #include <ompl/base/PlannerData.h>
 
 void config_planner(ompl::app::SE3RigidBodyPlanning& setup, int planner_id, int sampler_id, const char* = nullptr, int K = 1);
 void printPlan(const ompl::base::PlannerData& pdata, std::ostream& fout);
+void extractPlanVE(const ompl::base::PlannerData& pdata,
+                   Eigen::MatrixXd&,
+                   Eigen::SparseMatrix<uint8_t>&);
+
 void usage_planner_and_sampler();
 
 enum {

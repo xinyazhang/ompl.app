@@ -251,6 +251,39 @@ void printPlan(const ompl::base::PlannerData& pdata, std::ostream& fout)
 	}
 }
 
+void extractPlanVE(const ompl::base::PlannerData& pdata,
+                   Eigen::MatrixXd& V,
+                   Eigen::SparseMatrix<uint8_t>& E)
+{
+	auto nv = pdata.numVertices();
+	if (nv <= 0) {
+		return ;
+	}
+	const auto ss = pdata.getSpaceInformation()->getStateSpace();
+	std::vector<double> reals;
+	{
+		const auto* state = pdata.getVertex(0).getState();
+		ss->copyToReals(reals, state);
+		V.resize(nv, reals.size());
+		E.resize(nv, nv);
+	}
+	for (unsigned int i = 0; i < nv; i++) {
+		const auto* state = pdata.getVertex(i).getState();
+		ss->copyToReals(reals, state);
+		for (size_t e = 0; e < reals.size(); e++) {
+			V(i, e) = reals[e];
+		}
+	}
+	std::vector<Eigen::Triplet<uint8_t>> tris;
+	for (unsigned int i = 0; i < nv; i++) {
+		std::vector<unsigned int> edges;
+		pdata.getEdges(i, edges);
+		for (auto j : edges)
+			tris.emplace_back(i, j);
+	}
+	E.setFromTriplets(tris.begin(), tris.end());
+}
+
 void usage_planner_and_sampler()
 {
 	std::cout << R"xxx(PLANNER:
