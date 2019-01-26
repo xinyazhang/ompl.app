@@ -101,8 +101,12 @@ public:
 			       vs_sampler_id_,
 			       sample_inj_fn_.c_str(),
 			       rdt_k_nearest_);
-		setup.setRobotMesh(model_files_[MODEL_PART_ROB]);
-		setup.setEnvironmentMesh(model_files_[MODEL_PART_ENV]);
+		bool loaded;
+		loaded = setup.setRobotMesh(model_files_[MODEL_PART_ROB]);
+		loaded = loaded && setup.setEnvironmentMesh(model_files_[MODEL_PART_ENV]);
+		if (!loaded) {
+			throw std::runtime_error("Failed to load rob/env gemoetry");
+		}
 
 		auto& ist = problem_states_[INIT_STATE];
 		base::ScopedState<base::SE3StateSpace> start(setup.getSpaceInformation());
