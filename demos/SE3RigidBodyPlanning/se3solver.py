@@ -81,7 +81,8 @@ def merge_forest(args):
         d = loadmat(fn)
         driver.add_existing_graph(d['V'], d['E'])
     V,E = driver.solve(args.days, return_ve = True)
-    savemat(args.out[0], dict(V=V, E=E))
+    if args.out is not None:
+        savemat(args.out, dict(V=V, E=E))
 
 def main():
     main_parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -106,7 +107,7 @@ and size is default to 1''',
     parser.add_argument('days', help='Time limit in day(s)', type=float)
     parser.add_argument('trees', help='''Tree/Graph files/directories created by individual planner.
 If a directory is provided, all .mat files in this directory will be loaded''', nargs='+')
-    parser.add_argument('--out', help='Output file of the merged graph, in .npz format', nargs=1)
+    parser.add_argument('--out', help='Output file of the merged graph, in .npz format', default=None)
     parser.add_argument('--cdres', help='Collision detection resolution', type=float, default=0.005)
     args = main_parser.parse_args()
     if hasattr(args, 'replace_istate') and args.replace_istate is not None:
