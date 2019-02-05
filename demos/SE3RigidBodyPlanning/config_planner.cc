@@ -33,9 +33,11 @@ using namespace ompl;
 
 namespace {
 template<typename Planner>
-void set_planner(app::SE3RigidBodyPlanning& setup)
+Planner& set_planner(app::SE3RigidBodyPlanning& setup)
 {
-	setup.setPlanner(std::make_shared<Planner>(setup.getSpaceInformation()));
+	auto ret = std::make_shared<Planner>(setup.getSpaceInformation());
+	setup.setPlanner(ret);
+	return *ret;
 }
 
 ssize_t append_samples_from_file(const char* saminjfn, std::vector<std::vector<double>>& samples)
@@ -88,12 +90,17 @@ void load_inj(geometric::RRTForest* rrt_forest, const char* saminjfn)
 
 void config_planner(app::SE3RigidBodyPlanning& setup, int planner_id, int sampler_id, const char* saminjfn, int K)
 {
-	if (strlen(saminjfn) == 0) {
+	if (saminjfn && strlen(saminjfn) == 0) {
 		saminjfn = nullptr;
 	}
 	switch (planner_id) {
-		case 0:
-			set_planner<geometric::RRTConnect>(setup);
+		case PLANNER_RRT_CONNECT:
+		case PLANNER_RDT_CONNECT:
+			{
+				auto& rrtconnect = set_planner<geometric::RRTConnect>(setup);
+				if (planner_id == PLANNER_RDT_CONNECT)
+					rrtconnect.setDenseTree(true);
+			}
 			break;
 		case 1:
 			set_planner<geometric::RRT>(setup);
@@ -304,6 +311,7 @@ void usage_planner_and_sampler()
 14: SPARS
 15: ReRRT
 16: RRTForest
+17: RDTConnect
 
 SAMPLER:
  0: UniformValidStateSampler
