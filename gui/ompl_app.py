@@ -20,7 +20,7 @@ import OpenGL
 OpenGL.ERROR_CHECKING = False
 from OpenGL import GL, GLU
 import webbrowser
-from math import cos, sin, asin, acos, atan2, pi, sqrt
+from math import cos, sin, asin, acos, atan2, pi, sqrt, copysign
 
 USE_DEPRECATED_API = False
 
@@ -62,6 +62,63 @@ from ompl import app as oa
 
 import ompl
 ompl.initializePlannerLists()
+
+def _quat_to_euler_angle(q):
+    rad2deg = 180.0/pi
+    # roll (x-axis rotation)
+    sinr_cosp = 2.0 * (q.w * q.x + q.y * q.z)
+    cosr_cosp = 1.0 - 2.0 * (q.x * q.x + q.y * q.y)
+    roll = atan2(sinr_cosp, cosr_cosp)
+
+    # pitch (y-axis rotation)
+    sinp = 2.0 * (q.w * q.y - q.z * q.x)
+    if abs(sinp) >= 1:
+        print("Overflow: sinp = {}".format(sinp))
+        pitch = copysign(pi / 2, sinp) # use 90 degrees if out of range
+    else:
+        pitch = asin(sinp)
+
+    # yaw (z-axis rotation)
+    siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
+    cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+    yaw = atan2(siny_cosp, cosy_cosp)
+    # print("quat xyzw {} {} {} {} to EA {} {} {}".format(q.x, q.y, q.z, q.w, roll, pitch, yaw))
+    # print("  EA in deg {} {} {}".format(rad2deg * roll, rad2deg * pitch, rad2deg * yaw))
+    return rad2deg * roll, rad2deg * pitch, rad2deg * yaw
+
+def _euler_angle_to_quat(roll, pitch, yaw):
+    roll = roll / 180.0 * pi
+    pitch = pitch / 180.0 * pi
+    yaw = yaw / 180.0 * pi
+
+    cy = cos(yaw * 0.5)
+    sy = sin(yaw * 0.5)
+    cp = cos(pitch * 0.5)
+    sp = sin(pitch * 0.5)
+    cr = cos(roll * 0.5)
+    sr = sin(roll * 0.5)
+
+    w = cy * cp * cr + sy * sp * sr
+    x = cy * cp * sr - sy * sp * cr
+    y = sy * cp * sr + cy * sp * cr
+    z = sy * cp * cr - cy * sp * sr
+
+    # print("quat xyzw {} {} {} {} from EA {} {} {}".format(x, y, z, w, roll, pitch, yaw))
+    return x,y,z,w
+
+def _quat_to_angle_axis(qx,qy,qz,qw):
+    angle = 2 * acos(qw)
+    s = sqrt(1 - qw*qw)
+    if s < 1e-6:
+        x = qx
+        y = qy
+        z = qz
+    else:
+        x = qx / s
+        y = qy / s
+        z = qz / s
+    # print("quat xyzw {} {} {} {} to AA {} {} {} {}".format(qx, qy, qz, qw, angle, x, y, z))
+    return angle, x, y, z
 
 # wrapper for API change in PyQt
 def getOpenFileNameAsAstring(qtwindow, title="", directory="", ffilter=""):
@@ -243,6 +300,7 @@ class MainWindow(QtWidgets.QMainWindow):
             start = ob.State(self.omplSetup.getGeometricComponentStateSpace())
             goal = ob.State(self.omplSetup.getGeometricComponentStateSpace())
             if self.is3D:
+                #print("Load Angle Axis")
                 start().setX(config.getfloat("problem", "start.x"))
                 start().setY(config.getfloat("problem", "start.y"))
                 start().setZ(config.getfloat("problem", "start.z"))
@@ -257,6 +315,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                                config.getfloat("problem", "goal.axis.y"),
                                                config.getfloat("problem", "goal.axis.z"),
                                                config.getfloat("problem", "goal.theta"))
+                #print("start quat xyzw: {} {} {} {}".format(start().rotation().x, start().rotation().y, start().rotation().z, start().rotation().w))
             else:
                 start().setX(config.getfloat("problem", "start.x"))
                 start().setY(config.getfloat("problem", "start.y"))
@@ -811,6 +870,7 @@ class GLViewer(QtOpenGL.QGLWidget):
         self.bounds_high = bound
         self.updateGL()
     def setStartPose(self, value):
+        # print("GLViewer.setStartPose {}".format(value))
         self.startPose = value
         self.updateBounds(value[3:])
         self.updateGL()
@@ -876,12 +936,20 @@ class GLViewer(QtOpenGL.QGLWidget):
         GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
         #GL.glEnable(GL.GL_CULL_FACE)
 
-    def transform(self, pose):
+    def transform_dep(self, pose):
         GL.glPushMatrix()
         GL.glTranslatef(pose[3], pose[4], pose[5])
         GL.glRotated(pose[0], 1.0, 0.0, 0.0)
         GL.glRotated(pose[1], 0.0, 1.0, 0.0)
         GL.glRotated(pose[2], 0.0, 0.0, 1.0)
+
+    def transform(self, pose):
+        GL.glPushMatrix()
+        GL.glTranslatef(pose[3], pose[4], pose[5])
+        x,y,z,w = _euler_angle_to_quat(pose[0], pose[1], pose[2])
+        a,x,y,z = _quat_to_angle_axis(x,y,z,w)
+        GL.glRotated(a / pi * 180.0, x, y, z)
+
     def getTransform(self, xform):
         if hasattr(xform, 'rotation'):
             R = xform.rotation()
@@ -1171,9 +1239,14 @@ class Pose3DBox(QtWidgets.QGroupBox):
             self.posz.setValue(state.getZ())
             q = state.rotation()
             rad2deg = 180/pi
-            self.rotx.setValue(rad2deg * atan2(2.*(q.w*q.x+q.y*q.z), 1.-2.*(q.x*q.x+q.y*q.y)))
-            self.roty.setValue(rad2deg * asin(max(min(2.*(q.w*q.y-q.z*q.x), 1.), -1.)))
-            self.rotz.setValue(rad2deg * atan2(2.*(q.w*q.z+q.x*q.y), 1.-2.*(q.y*q.y+q.z*q.z)))
+            # FIXME: buggy Quaternion to Euler Angle code
+            roll,pitch,yaw = _quat_to_euler_angle(q)
+            self.rotx.setValue(roll)
+            self.roty.setValue(pitch)
+            self.rotz.setValue(yaw)
+            #self.rotx.setValue(rad2deg * atan2(2.*(q.w*q.x+q.y*q.z), 1.-2.*(q.x*q.x+q.y*q.y)))
+            #self.roty.setValue(rad2deg * asin(max(min(2.*(q.w*q.y-q.z*q.x), 1.), -1.)))
+            #self.rotz.setValue(rad2deg * atan2(2.*(q.w*q.z+q.x*q.y), 1.-2.*(q.y*q.y+q.z*q.z)))
         else:
             self.posx.setValue(state.getX())
             self.posy.setValue(state.getY())
@@ -1187,14 +1260,16 @@ class Pose3DBox(QtWidgets.QGroupBox):
         state().setX(self.posx.value())
         state().setY(self.posy.value())
         state().setZ(self.posz.value())
-        angles = [self.rotx.value(), self.roty.value(), self.rotz.value()]
-        c = [cos(angle*pi/360.) for angle in angles]
-        s = [sin(angle*pi/360.) for angle in angles]
+        #angles = [self.rotx.value(), self.roty.value(), self.rotz.value()]
+        #c = [cos(angle*pi/360.) for angle in angles]
+        #s = [sin(angle*pi/360.) for angle in angles]
+        #rot = state().rotation()
+        #rot.w = c[0]*c[1]*c[2] - s[0]*s[1]*s[2]
+        #rot.x = s[0]*c[1]*c[2] + c[0]*s[1]*s[2]
+        #rot.y = c[0]*s[1]*c[2] - s[0]*c[1]*s[2]
+        #rot.z = c[0]*c[1]*s[2] + s[0]*s[1]*c[2]
         rot = state().rotation()
-        rot.w = c[0]*c[1]*c[2] - s[0]*s[1]*s[2]
-        rot.x = s[0]*c[1]*c[2] + c[0]*s[1]*s[2]
-        rot.y = c[0]*s[1]*c[2] - s[0]*c[1]*s[2]
-        rot.z = c[0]*c[1]*s[2] + s[0]*s[1]*c[2]
+        rot.x,rot.y,rot.z,rot.w = _euler_angle_to_quat(self.rotx.value(), self.roty.value(), self.rotz.value())
         return state
 
     def poseChange(self, _):
