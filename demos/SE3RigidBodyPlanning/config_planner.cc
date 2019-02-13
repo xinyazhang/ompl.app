@@ -309,7 +309,7 @@ void usage_planner_and_sampler()
 12: LazyRRT
 13: LazyLBTRRT
 14: SPARS
-15: ReRRT
+15: ReRRT (RDT)
 16: RRTForest
 17: RDTConnect
 
