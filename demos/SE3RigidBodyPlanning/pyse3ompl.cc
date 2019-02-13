@@ -91,11 +91,133 @@ public:
 	std::tuple<GraphV, GraphE>
 	solve(double days,
 	      const std::string& output_fn,
-	      bool return_ve = false)
+	      bool return_ve = false,
+	      int_least64_t sbudget = -1)
 	{
 		using namespace ompl;
 
 		ompl::app::SE3RigidBodyPlanning setup;
+		configSE3RigidBodyPlanning(setup);
+		std::cout << "Trying to solve "
+		          << model_files_[MODEL_PART_ROB]
+			  << " v.s. "
+			  << model_files_[MODEL_PART_ENV]
+			  << std::endl;
+		setup.print();
+		if (!ex_graph_v_.empty()) {
+			auto planner = setup.getPlanner();
+			for (size_t i = 0; i < ex_graph_v_.size(); i++) {
+				planner->addGraph(ex_graph_v_[i], ex_graph_e_[i]);
+			}
+		}
+		if (predefined_sample_set_.rows() > 0) {
+			auto planner = setup.getPlanner();
+			planner->setSampleSet(predefined_sample_set_);
+		}
+		if (sbudget > 0)
+			throw std::runtime_error("sbudget is not implemented");
+		if (setup.solve(3600 * 24 * days)) {
+			std::cout.precision(17);
+			setup.getSolutionPath().printAsMatrix(std::cout);
+		}
+		GraphV V;
+		GraphE E;
+		if (!output_fn.empty() or return_ve) {
+			base::PlannerData pdata(setup.getSpaceInformation());
+			setup.getPlanner()->getPlannerData(pdata);
+			if (!output_fn.empty()) {
+				std::ofstream fout(output_fn);
+				fout.precision(17);
+				printPlan(pdata, fout);
+			}
+			if (return_ve) {
+				extractPlanVE(pdata, V, E);
+			}
+		}
+		std::cout << "-----FINAL-----" << std::endl;
+		ompl::base::Planner::PlannerProgressProperties props = setup.getPlanner()->getPlannerProgressProperties();
+		std::cerr << "Final properties\n";
+		for (const auto& item : props) {
+			std::cerr << item.first << ": " << item.second() << std::endl;
+		}
+		if (predefined_sample_set_.rows() > 0) {
+			setup.getPlanner()->getSampleSetConnectivity(predefined_set_connectivity_);
+		}
+		return std::tie(V, E);
+	}
+
+	GraphV
+	presample(size_t nsamples)
+	{
+		GraphV ret;
+		ompl::app::SE3RigidBodyPlanning setup;
+		configSE3RigidBodyPlanning(setup);
+		auto ss = setup.getGeometricComponentStateSpace();
+		auto sampler = ss->allocStateSampler();
+		auto state = ss->allocState();
+
+		std::vector<double> reals;
+		ss->copyToReals(reals, state);
+		ret.resize(nsamples, reals.size());
+		for (size_t i = 0; i < nsamples; i++) {
+			sampler->sampleUniform(state);
+			ss->copyToReals(reals, state);
+			ret.row(i) = Eigen::Map<Eigen::VectorXd>(reals.data(), reals.size());
+		}
+
+		ss->freeState(state);
+		return ret;
+	}
+
+	// NOTE: TRANSLATION + W-LAST QUATERNION
+	void substituteState(int state_type, const Eigen::VectorXd& state)
+	{
+		Eigen::Vector3d tr;
+		tr << state(0), state(1), state(2);
+		Eigen::Quaternion<double> quat(state(6), state(3), state(4), state(5));
+		Eigen::AngleAxis<double> aa(quat);
+		setState(state_type, tr, aa.axis(), aa.angle());
+	}
+
+	void addExistingGraph(GraphV V, GraphE E)
+	{
+		ex_graph_v_.emplace_back(std::move(V));
+		ex_graph_e_.emplace_back(std::move(E));
+	}
+
+	// Only one set is supported. If multiple ones present, users are
+	// supposed to call to merge them together in python side, which is
+	// eaiser
+	void setSampleSet(GraphV Q)
+	{
+		predefined_sample_set_ = std::move(Q);
+	}
+
+	Eigen::SparseMatrix<int>
+	getSampleSetConnectivity() const
+	{
+		return predefined_set_connectivity_;
+	}
+private:
+	int planner_id_;
+	int vs_sampler_id_;
+	int rdt_k_nearest_;
+	std::string sample_inj_fn_;
+	std::string model_files_[TOTAL_MODEL_PARTS];
+	SE3State problem_states_[TOTAL_STATES];
+	Eigen::Vector3d mins_, maxs_;
+	double cdres_ = std::numeric_limits<double>::quiet_NaN();
+
+	std::vector<GraphV> ex_graph_v_;
+	std::vector<GraphE> ex_graph_e_;
+
+	GraphV predefined_sample_set_;
+	Eigen::SparseMatrix<int> predefined_set_connectivity_;
+
+	void configSE3RigidBodyPlanning(ompl::app::SE3RigidBodyPlanning& setup)
+	{
+		using namespace ompl;
+
 		config_planner(setup,
 			       planner_id_,
 			       vs_sampler_id_,
@@ -137,68 +259,7 @@ public:
 		}
 		gcss->setBounds(b);
 		setup.setup();
-
-		std::cout << "Trying to solve "
-		          << model_files_[MODEL_PART_ROB]
-			  << " v.s. "
-			  << model_files_[MODEL_PART_ENV]
-			  << std::endl;
-		setup.print();
-		if (!ex_graph_v_.empty()) {
-			auto planner = setup.getPlanner();
-			for (size_t i = 0; i < ex_graph_v_.size(); i++) {
-				planner->addGraph(ex_graph_v_[i], ex_graph_e_[i]);
-			}
-		}
-		if (setup.solve(3600 * 24 * days)) {
-			std::cout.precision(17);
-			setup.getSolutionPath().printAsMatrix(std::cout);
-		}
-		GraphV V;
-		GraphE E;
-		if (!output_fn.empty() or return_ve) {
-			base::PlannerData pdata(setup.getSpaceInformation());
-			setup.getPlanner()->getPlannerData(pdata);
-			if (!output_fn.empty()) {
-				std::ofstream fout(output_fn);
-				fout.precision(17);
-				printPlan(pdata, fout);
-			}
-			if (return_ve) {
-				extractPlanVE(pdata, V, E);
-			}
-		}
-		std::cout << "-----FINAL-----" << std::endl;
-		return std::tie(V, E);
 	}
-
-	// NOTE: TRANSLATION + W-LAST QUATERNION
-	void substituteState(int state_type, const Eigen::VectorXd& state)
-	{
-		Eigen::Vector3d tr;
-		tr << state(0), state(1), state(2);
-		Eigen::Quaternion<double> quat(state(6), state(3), state(4), state(5));
-		Eigen::AngleAxis<double> aa(quat);
-		setState(state_type, tr, aa.axis(), aa.angle());
-	}
-
-	void addExistingGraph(GraphV V, GraphE E)
-	{
-		ex_graph_v_.emplace_back(std::move(V));
-		ex_graph_e_.emplace_back(std::move(E));
-	}
-private:
-	int planner_id_;
-	int vs_sampler_id_;
-	int rdt_k_nearest_;
-	std::string sample_inj_fn_;
-	std::string model_files_[TOTAL_MODEL_PARTS];
-	SE3State problem_states_[TOTAL_STATES];
-	Eigen::Vector3d mins_, maxs_;
-	double cdres_ = std::numeric_limits<double>::quiet_NaN();
-
-	std::vector<GraphV> ex_graph_v_;
-	std::vector<GraphE> ex_graph_e_;
 };
 
 PYBIND11_MODULE(pyse3ompl, m) {
@@ -237,9 +298,13 @@ PYBIND11_MODULE(pyse3ompl, m) {
 		.def("solve", &OmplDriver::solve,
 		     py::arg("days"),
 		     py::arg("output_fn") = std::string(),
-		     py::arg("return_ve") = false
+		     py::arg("return_ve") = false,
+		     py::arg("sbudget") = -1
 		    )
 		.def("substitute_state", &OmplDriver::substituteState)
 		.def("add_existing_graph", &OmplDriver::addExistingGraph)
+		.def("set_sample_set", &OmplDriver::setSampleSet)
+		.def("get_sample_set_connectivity", &OmplDriver::getSampleSetConnectivity)
+		.def("presample", &OmplDriver::presample)
 		;
 }
