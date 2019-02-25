@@ -92,7 +92,8 @@ public:
 	solve(double days,
 	      const std::string& output_fn,
 	      bool return_ve = false,
-	      int_least64_t sbudget = -1)
+	      int_least64_t sbudget = -1,
+	      bool record_compact_tree = false)
 	{
 		using namespace ompl;
 
@@ -113,6 +114,10 @@ public:
 		if (predefined_sample_set_.rows() > 0) {
 			auto planner = setup.getPlanner();
 			planner->setSampleSet(predefined_sample_set_);
+		} else {
+			if (record_compact_tree) {
+				throw std::runtime_error("record_compact_tree requires set_sample_set");
+			}
 		}
 		if (sbudget > 0)
 			throw std::runtime_error("sbudget is not implemented");
@@ -142,6 +147,9 @@ public:
 		}
 		if (predefined_sample_set_.rows() > 0) {
 			setup.getPlanner()->getSampleSetConnectivity(predefined_set_connectivity_);
+			if (record_compact_tree) {
+				recordCompactTree(setup.getPlanner());
+			}
 		}
 		return std::tie(V, E);
 	}
@@ -197,6 +205,18 @@ public:
 	getSampleSetConnectivity() const
 	{
 		return predefined_set_connectivity_;
+	}
+
+	std::tuple<
+		Eigen::Matrix<int64_t, -1, 1>,
+		Eigen::MatrixXd,
+		Eigen::Matrix<int64_t, -1, 2>
+	          >
+	getCompactGraph() const
+	{
+		return std::tie(compact_nouveau_vertex_id_,
+				compact_nouveau_vertices_,
+				compact_edges_);
 	}
 private:
 	int planner_id_;
@@ -260,6 +280,17 @@ private:
 		gcss->setBounds(b);
 		setup.setup();
 	}
+
+	Eigen::Matrix<int64_t, -1, 1> compact_nouveau_vertex_id_;
+	Eigen::MatrixXd compact_nouveau_vertices_;
+	Eigen::Matrix<int64_t, -1, 2> compact_edges_;
+
+	void recordCompactTree(ompl::base::PlannerPtr planner)
+	{
+		planner->getCompactGraph(compact_nouveau_vertex_id_,
+		                         compact_nouveau_vertices_,
+		                         compact_edges_);
+	}
 };
 
 PYBIND11_MODULE(pyse3ompl, m) {
@@ -299,12 +330,14 @@ PYBIND11_MODULE(pyse3ompl, m) {
 		     py::arg("days"),
 		     py::arg("output_fn") = std::string(),
 		     py::arg("return_ve") = false,
-		     py::arg("sbudget") = -1
+		     py::arg("sbudget") = -1,
+		     py::arg("record_compact_tree") = false
 		    )
 		.def("substitute_state", &OmplDriver::substituteState)
 		.def("add_existing_graph", &OmplDriver::addExistingGraph)
 		.def("set_sample_set", &OmplDriver::setSampleSet)
 		.def("get_sample_set_connectivity", &OmplDriver::getSampleSetConnectivity)
 		.def("presample", &OmplDriver::presample)
+		.def("get_compact_graph", &OmplDriver::getCompactGraph)
 		;
 }
