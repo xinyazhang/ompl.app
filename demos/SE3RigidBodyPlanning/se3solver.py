@@ -66,6 +66,9 @@ def solve(args):
     if args.samset:
         Q = np.load(args.samset)['Q']
         driver.set_sample_set(Q)
+        record_compact_tree = True
+    else:
+        record_compact_tree = False
     if args.replace_istate is not None or args.replace_gstate is not None:
         A, is_size, is_offset, is_out = _load_states_from_dic(args.istate_dic)
         B, gs_size, gs_offset, gs_out = _load_states_from_dic(args.gstate_dic)
@@ -75,6 +78,10 @@ def solve(args):
             out_path = gs_out
         else:
             out_path = is_out
+        if isdir(out_path):
+            out_dir = out_path
+        else:
+            out_dir = dirname(out_path)
         for i in range(max(is_size,gs_size)):
             index = is_offset + i
             gindex = gs_offset + i
@@ -86,19 +93,26 @@ def solve(args):
                 if gindex > B.shape[0]:
                     break
                 driver.substitute_state(plan.GOAL_STATE, B[gindex])
-            V,E = driver.solve(args.days, return_ve = True, sbudget=args.sbudget)
+            if args.samset2:
+                index = current
+            ssc_fn = '{}/ssc-{}.mat'.format(out_dir, index)
+            tree_fn = '{}/compact_tree-{}.mat'.format(out_path, index)
+            if args.samset and args.skip_existing:
+                if os.path.exists(ssc_fn) and os.path.exists(tree_fn):
+                    print("skipping exising file {} and {}".format(ssc_fn, tree_fn))
+                    continue
+            _,_ = driver.solve(args.days, return_ve = False, sbudget=args.sbudget, record_compact_tree=record_compact_tree)
+            '''
             if isdir(out_path):
                 savemat('{}/tree-{}.mat'.format(out_path, index), dict(V=V, E=E), do_compression=True)
             else:
                 savemat(out_path, dict(V=V, E=E), do_compression=True)
-        if args.samset2:
-            index = current
-        if isdir(out_path):
-            out_dir = out_path
-        else:
-            out_dir = dirname(out_path)
-        if args.samset:
-            savemat('{}/ssc-{}.mat'.format(out_dir, index), dict(C=driver.get_sample_set_connectivity()), do_compression=True)
+            '''
+            if args.samset:
+                savemat(ssc_fn, dict(C=driver.get_sample_set_connectivity()), do_compression=True)
+            if record_compact_tree:
+                CNVI, CNV, CE = driver.get_compact_graph()
+                savemat(tree_fn, dict(CNVI=CNVI, CNV=CNV, CE=CE), do_compression=True)
     else:
         driver.solve(args.days, args.out, sbudget=args.sbudget)
 
@@ -161,6 +175,7 @@ def main():
     parser.add_argument('--saminj', help='Sample injection file', type=str, default='')
     parser.add_argument('--samset', help='Predefined sample set', type=str, default='')
     parser.add_argument('--samset2', help='Predefined sample set, in current total prefix', type=str, nargs=3, default=[])
+    parser.add_argument('--skip_existing', help='Quit if the output file already exists', action='store_true')
     parser.add_argument('--rdt_k', help='K Nearest in RDT algorithm', type=int, default=1)
     parser.add_argument('--cdres', help='Collision detection resolution', type=float, default=0.005)
     parser.add_argument('--replace_istate', help='''
