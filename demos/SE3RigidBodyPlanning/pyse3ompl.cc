@@ -33,6 +33,7 @@ class OmplDriver {
 	};
 public:
 	using GraphV = Eigen::MatrixXd;
+	using GraphVFlags = Eigen::Matrix<uint32_t, -1, 1>;
 	using GraphE = Eigen::SparseMatrix<uint8_t>;
 
 	OmplDriver()
@@ -114,6 +115,9 @@ public:
 		if (predefined_sample_set_.rows() > 0) {
 			auto planner = setup.getPlanner();
 			planner->setSampleSet(predefined_sample_set_);
+			if (pds_flags_.rows() > 0) {
+				planner->setSampleSetFlags(pds_flags_);
+			}
 		} else {
 			if (record_compact_tree) {
 				throw std::runtime_error("record_compact_tree requires set_sample_set");
@@ -201,6 +205,11 @@ public:
 		predefined_sample_set_ = std::move(Q);
 	}
 
+	void setSampleSetFlags(GraphVFlags QF)
+	{
+		pds_flags_ = std::move(QF);
+	}
+
 	Eigen::SparseMatrix<int>
 	getSampleSetConnectivity() const
 	{
@@ -232,6 +241,7 @@ private:
 	std::vector<GraphE> ex_graph_e_;
 
 	GraphV predefined_sample_set_;
+	GraphVFlags pds_flags_;
 	Eigen::SparseMatrix<int> predefined_set_connectivity_;
 
 	void configSE3RigidBodyPlanning(ompl::app::SE3RigidBodyPlanning& setup)
@@ -336,6 +346,7 @@ PYBIND11_MODULE(pyse3ompl, m) {
 		.def("substitute_state", &OmplDriver::substituteState)
 		.def("add_existing_graph", &OmplDriver::addExistingGraph)
 		.def("set_sample_set", &OmplDriver::setSampleSet)
+		.def("set_sample_set_flags", &OmplDriver::setSampleSetFlags)
 		.def("get_sample_set_connectivity", &OmplDriver::getSampleSetConnectivity)
 		.def("presample", &OmplDriver::presample)
 		.def("get_compact_graph", &OmplDriver::getCompactGraph)

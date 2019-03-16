@@ -64,8 +64,12 @@ def solve(args):
         prefix = args.samset2[2]
         args.samset = '{}{}.npz'.format(prefix, current % total)
     if args.samset:
-        Q = np.load(args.samset)['Q']
+        d = np.load(args.samset)
+        Q = d['Q']
         driver.set_sample_set(Q)
+        if 'QF' in d:
+            QF = d['QF']
+            driver.set_sample_set_flags(QF)
         record_compact_tree = True
     else:
         record_compact_tree = False
@@ -202,7 +206,7 @@ If a directory is provided, all .mat files in this directory will be loaded''', 
     parser.add_argument('--cdres', help='Collision detection resolution', type=float, default=0.005)
     # Subcommand 'merge_pdsc'
     parser = subparsers.add_parser("merge_pdsc", help='Merge connectivity matrix created from PreDefined set of samples.')
-    parser.add_argument('pdsf', help='Pre-Defined Set of sample File')
+    parser.add_argument('pdsf', help='Pre-Defined Sample set (PDS) File')
     parser.add_argument('dir', help='''Directory that stores the connectivity sparse matrices''')
     parser.add_argument('out', help='''output file''')
     args = main_parser.parse_args()
