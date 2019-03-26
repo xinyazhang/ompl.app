@@ -58,6 +58,7 @@ def _load_states_from_dic(dic):
 
 def solve(args):
     driver = _create_driver(args)
+    ccd = (args.cdres <= 0.0)
     if args.samset2:
         current = int(args.samset2[0])
         total = int(args.samset2[1])
@@ -73,6 +74,7 @@ def solve(args):
         record_compact_tree = True
     else:
         record_compact_tree = False
+    print("solve args {}".format(args))
     if args.replace_istate is not None or args.replace_gstate is not None:
         A, is_size, is_offset, is_out = _load_states_from_dic(args.istate_dic)
         B, gs_size, gs_offset, gs_out = _load_states_from_dic(args.gstate_dic)
@@ -86,15 +88,19 @@ def solve(args):
             out_dir = out_path
         else:
             out_dir = dirname(out_path)
+        print("is_size, gs_size {} {}".format(is_size,gs_size))
+        print("A, B {} {}".format(A.shape if A is not None else None, B.shape if B is not None else None))
         for i in range(max(is_size,gs_size)):
             index = is_offset + i
             gindex = gs_offset + i
             if is_size > 0:
                 if index > A.shape[0]:
+                    print("istate offset {} out of range {}".format(index, A.shape[0]))
                     break
                 driver.substitute_state(plan.INIT_STATE, A[index])
             if gs_size > 0:
                 if gindex > B.shape[0]:
+                    print("gstate offset {} out of range {}".format(index, B.shape[0]))
                     break
                 driver.substitute_state(plan.GOAL_STATE, B[gindex])
             if args.samset2:
@@ -105,7 +111,7 @@ def solve(args):
                 if os.path.exists(ssc_fn) and os.path.exists(tree_fn):
                     print("skipping exising file {} and {}".format(ssc_fn, tree_fn))
                     continue
-            _,_ = driver.solve(args.days, return_ve = False, sbudget=args.sbudget, record_compact_tree=record_compact_tree)
+            _,_ = driver.solve(args.days, return_ve = False, sbudget=args.sbudget, record_compact_tree=record_compact_tree, continuous_motion_validator=ccd)
             '''
             if isdir(out_path):
                 savemat('{}/tree-{}.mat'.format(out_path, index), dict(V=V, E=E), do_compression=True)
@@ -181,7 +187,7 @@ def main():
     parser.add_argument('--samset2', help='Predefined sample set, in current total prefix', type=str, nargs=3, default=[])
     parser.add_argument('--skip_existing', help='Quit if the output file already exists', action='store_true')
     parser.add_argument('--rdt_k', help='K Nearest in RDT algorithm', type=int, default=1)
-    parser.add_argument('--cdres', help='Collision detection resolution', type=float, default=0.005)
+    parser.add_argument('--cdres', help='Collision detection resolution, set zero/negative to enable continuouse collision detection', type=float, default=0.005)
     parser.add_argument('--replace_istate', help='''
 Replace Initial State. Syntax: file=<path to npz>,key=<npz key>,offset=<number>,size=<number>,out=<dir>,
 in which key=, size= are optional.

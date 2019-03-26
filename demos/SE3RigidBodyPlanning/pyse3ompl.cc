@@ -7,6 +7,8 @@
 #include <pybind11/eigen.h>
 #include <string>
 #include <omplapp/apps/SE3RigidBodyPlanning.h>
+//#include <omplapp/geometry/detail/FCLStateValidityChecker.h>
+#include <omplapp/geometry/detail/FCLContinuousMotionValidator.h>
 #include <omplapp/config.h>
 #include "config_planner.h"
 #include <iostream>
@@ -94,12 +96,13 @@ public:
 	      const std::string& output_fn,
 	      bool return_ve = false,
 	      int_least64_t sbudget = -1,
-	      bool record_compact_tree = false)
+	      bool record_compact_tree = false,
+	      bool continuous = false)
 	{
 		using namespace ompl;
 
 		ompl::app::SE3RigidBodyPlanning setup;
-		configSE3RigidBodyPlanning(setup);
+		configSE3RigidBodyPlanning(setup, continuous);
 		std::cout << "Trying to solve "
 		          << model_files_[MODEL_PART_ROB]
 			  << " v.s. "
@@ -244,7 +247,7 @@ private:
 	GraphVFlags pds_flags_;
 	Eigen::SparseMatrix<int> predefined_set_connectivity_;
 
-	void configSE3RigidBodyPlanning(ompl::app::SE3RigidBodyPlanning& setup)
+	void configSE3RigidBodyPlanning(ompl::app::SE3RigidBodyPlanning& setup, bool continuous = false)
 	{
 		using namespace ompl;
 
@@ -279,7 +282,8 @@ private:
 					      gst.rot_axis(2),
 					      gst.rot_angle);
 		setup.setStartAndGoalStates(start, goal);
-		setup.getSpaceInformation()->setStateValidityCheckingResolution(cdres_);
+		if (!continuous)
+			setup.getSpaceInformation()->setStateValidityCheckingResolution(cdres_);
 
 		auto gcss = setup.getGeometricComponentStateSpace()->as<base::SE3StateSpace>();
 		base::RealVectorBounds b = gcss->getBounds();
@@ -289,6 +293,15 @@ private:
 		}
 		gcss->setBounds(b);
 		setup.setup();
+		if (continuous) {
+			// Note: we need to do this AFTER calling setup()
+			//       since Motion Validator requires State
+			//       Validator in the SpaceInformation object,
+			//       whcih is done in setup()
+			auto si = setup.getSpaceInformation();
+			si->setMotionValidator(std::make_shared<app::FCLContinuousMotionValidator>(si.get(), app::Motion_3D));
+			setup.setup();
+		}
 	}
 
 	Eigen::Matrix<int64_t, -1, 1> compact_nouveau_vertex_id_;
@@ -341,7 +354,8 @@ PYBIND11_MODULE(pyse3ompl, m) {
 		     py::arg("output_fn") = std::string(),
 		     py::arg("return_ve") = false,
 		     py::arg("sbudget") = -1,
-		     py::arg("record_compact_tree") = false
+		     py::arg("record_compact_tree") = false,
+		     py::arg("continuous_motion_validator") = false
 		    )
 		.def("substitute_state", &OmplDriver::substituteState)
 		.def("add_existing_graph", &OmplDriver::addExistingGraph)
