@@ -110,7 +110,7 @@ def solve(args):
             if args.samset2:
                 index = current
             ssc_fn = '{}/ssc-{}.mat'.format(out_dir, index)
-            tree_fn = '{}/compact_tree-{}.mat'.format(out_path, index)
+            tree_fn = '{}/compact_tree-{}.mat'.format(out_dir, index)
             if args.samset and args.skip_existing:
                 if os.path.exists(ssc_fn) and os.path.exists(tree_fn):
                     print("skipping exising file {} and {}".format(ssc_fn, tree_fn))
@@ -129,6 +129,9 @@ def solve(args):
                 savemat(tree_fn, dict(CNVI=CNVI, CNV=CNV, CE=CE), do_compression=True)
     else:
         driver.solve(args.days, args.out, sbudget=args.sbudget)
+        if args.trajectory_out:
+            is_complete = (driver.latest_solution_status == plan.EXACT_SOLUTION)
+            np.savez(args.trajectory_out, OMPL_TRAJECTORY=driver.latest_solution, FLAG_IS_COMPLETE=is_complete)
 
 
 def merge_forest(args):
@@ -185,6 +188,7 @@ def main():
     parser.add_argument('days', help='Time limit in day(s)', type=float)
     parser.add_argument('--sbudget', help='Number of samples limit, in additional to time limit', type=int ,default=-1)
     parser.add_argument('--out', help='Output complete planning data', default='')
+    parser.add_argument('--trajectory_out', help='Output complete planning data', default='')
     parser.add_argument('--sampler', help='Valid state sampler', type=int, default=0)
     parser.add_argument('--saminj', help='Sample injection file', type=str, default='')
     parser.add_argument('--samset', help='Predefined sample set', type=str, default='')
