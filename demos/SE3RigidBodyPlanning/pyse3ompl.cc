@@ -4,6 +4,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #include <pybind11/eigen.h>
 #include <string>
 #include <omplapp/apps/SE3RigidBodyPlanning.h>
@@ -90,6 +91,8 @@ public:
 
 	// Collision detection resolution
 	void setCDRes(double cdres) { cdres_ = cdres; }
+
+	void setOptionVector(std::vector<std::string> ovec) { option_vector_ = std::move(ovec); }
 
 	std::tuple<GraphV, GraphE>
 	solve(double days,
@@ -246,6 +249,7 @@ private:
 	GraphV predefined_sample_set_;
 	GraphVFlags pds_flags_;
 	Eigen::SparseMatrix<int> predefined_set_connectivity_;
+	std::vector<std::string> option_vector_;
 
 	void configSE3RigidBodyPlanning(ompl::app::SE3RigidBodyPlanning& setup, bool continuous = false)
 	{
@@ -292,6 +296,8 @@ private:
 			b.setHigh(i, maxs_(i));
 		}
 		gcss->setBounds(b);
+		if (!option_vector_.empty())
+			setup.getPlanner()->setOptionVector(option_vector_);
 		setup.setup();
 		if (continuous) {
 			// Note: we need to do this AFTER calling setup()
@@ -349,6 +355,7 @@ PYBIND11_MODULE(pyse3ompl, m) {
 		.def("set_bb", &OmplDriver::setBB)
 		.def("set_state", &OmplDriver::setState)
 		.def("set_cdres", &OmplDriver::setCDRes)
+		.def("set_option_vector", &OmplDriver::setOptionVector)
 		.def("solve", &OmplDriver::solve,
 		     py::arg("days"),
 		     py::arg("output_fn") = std::string(),
