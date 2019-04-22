@@ -131,9 +131,12 @@ public:
 		}
 		if (sbudget > 0)
 			throw std::runtime_error("sbudget is not implemented");
-		if (setup.solve(3600 * 24 * days)) {
+		auto status = setup.solve(3600 * 24 * days);
+		if (status) {
 			std::cout.precision(17);
 			setup.getSolutionPath().printAsMatrix(std::cout);
+			setup.getSolutionPath().toMatrix(latest_solution_);
+			latest_solution_status_ = status;
 		}
 		GraphV V;
 		GraphE E;
@@ -233,6 +236,18 @@ public:
 				compact_nouveau_vertices_,
 				compact_edges_);
 	}
+
+	Eigen::MatrixXd
+	getLatestSolution() const
+	{
+		return latest_solution_;
+	}
+
+	int
+	getLatestSolutionStatus() const
+	{
+		return static_cast<int>(latest_solution_status_);
+	}
 private:
 	int planner_id_;
 	int vs_sampler_id_;
@@ -320,6 +335,9 @@ private:
 		                         compact_nouveau_vertices_,
 		                         compact_edges_);
 	}
+
+	Eigen::MatrixXd latest_solution_;
+	ompl::base::PlannerStatus::StatusType latest_solution_status_;
 };
 
 PYBIND11_MODULE(pyse3ompl, m) {
@@ -348,6 +366,7 @@ PYBIND11_MODULE(pyse3ompl, m) {
 	m.attr("MODEL_PART_ROB") = py::int_(int(MODEL_PART_ROB));
 	m.attr("INIT_STATE") = py::int_(int(INIT_STATE));
 	m.attr("GOAL_STATE") = py::int_(int(GOAL_STATE));
+	m.attr("EXACT_SOLUTION") = py::int_(int(ompl::base::PlannerStatus::EXACT_SOLUTION));
 	py::class_<OmplDriver>(m, "OmplDriver")
 		.def(py::init<>())
 		.def("set_planner", &OmplDriver::setPlanner)
@@ -371,5 +390,7 @@ PYBIND11_MODULE(pyse3ompl, m) {
 		.def("get_sample_set_connectivity", &OmplDriver::getSampleSetConnectivity)
 		.def("presample", &OmplDriver::presample)
 		.def("get_compact_graph", &OmplDriver::getCompactGraph)
+		.def_property_readonly("latest_solution", &OmplDriver::getLatestSolution)
+		.def_property_readonly("latest_solution_status", &OmplDriver::getLatestSolutionStatus)
 		;
 }
