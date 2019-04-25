@@ -1,0 +1,4 @@
+[submodule "ompl"]
+	path = ompl
+	url = git@github.com:xinyazhang/ompl.git
+	branch = goct-1.4.1_rrtforest
