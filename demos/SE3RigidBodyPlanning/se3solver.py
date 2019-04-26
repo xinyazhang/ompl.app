@@ -34,11 +34,12 @@ def _create_driver(args):
         driver.set_state(i, tr, rot_axis, rot_angle)
     lo = read_xyz(config, 'problem', 'volume.min')
     hi = read_xyz(config, 'problem', 'volume.max')
-    lo -= args.bvresize
-    hi += args.bvresize
+    if hasattr(args, 'bvresize'):
+        lo -= args.bvresize
+        hi += args.bvresize
     driver.set_bb(lo, hi)
     driver.set_cdres(args.cdres)
-    if args.solver_option_vector:
+    if hasattr(args, 'solver_option_vector') and args.solver_option_vector:
         driver.set_option_vector(args.solver_option_vector)
 
     return driver
@@ -72,6 +73,7 @@ def solve(args):
         d = np.load(args.samset)
         Q = d['Q']
         driver.set_sample_set(Q)
+        print("Set sample set {}".format(Q.shape))
         if 'QF' in d:
             QF = d['QF']
             driver.set_sample_set_flags(QF)
