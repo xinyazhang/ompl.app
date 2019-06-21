@@ -37,6 +37,9 @@ foreach(_target ${OMPLAPP_TARGETS})
         set_target_properties(${_target} PROPERTIES VERSION "${OMPLAPP_VERSION}" SOVERSION "${OMPLAPP_ABI_VERSION}")
     endif(WIN32)
 
+    # Ensure no undefined symbols
+    target_link_options(${_target} PRIVATE "LINKER:-z,defs")
+
     install(TARGETS ${_target}
         DESTINATION ${CMAKE_INSTALL_LIBDIR}
         COMPONENT omplapp)
@@ -46,6 +49,7 @@ foreach(_target ${OMPLAPP_TARGETS})
         "${CMAKE_CURRENT_SOURCE_DIR}/../../ompl/py-bindings/ompl/app/lib${_target}${CMAKE_SHARED_LIBRARY_SUFFIX}"
         WORKING_DIRECTORY "${LIBRARY_OUTPUT_PATH}")
     endif(NOT MSVC)
+
 endforeach()
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/config.h.in"
